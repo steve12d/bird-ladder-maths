@@ -5,18 +5,15 @@
   --sky-top:    #7ec8e3;
   --sky-bot:    #c9e8f5;
   --grass:      #c8e6b0;
-  --green-dark: #2d8a2d;
-  --green-mid:  #3a9a3a;
-  --brown:      #8b4513;
-  --card-bg:    #ffffff;
-  --card-shadow: 0 8px 32px rgba(0,0,0,0.13);
-  --orange:     #ff8c00;
-  --purple:     #8e44ad;
-  --red:        #e74c3c;
-  --teal:       #1abc9c;
   --correct:    #27ae60;
   --wrong:      #e74c3c;
+  --orange:     #ff8c00;
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.13);
   --font:       'Nunito', sans-serif;
+  /* Width of one pre-populated trailing-zero character.
+     Calculated from the ladder's font size (1.4rem @ 16px = 22.4px).
+     We use ch units so it scales with font-size. */
+  --tz-char: 1.05rem;   /* ≈ width of '0' at the ladder's font size */
 }
 
 html, body {
@@ -27,21 +24,18 @@ html, body {
 }
 
 /* ── Screens ────────────────────────────────────────────────────── */
-.screen {
-  display: none;
-  position: fixed;
-  inset: 0;
-}
+.screen { display: none; position: fixed; inset: 0; }
 .screen.active { display: flex; }
 
-/* ── START SCREEN ───────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   START SCREEN
+   ══════════════════════════════════════════════════════════════════ */
 #start-screen {
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
   overflow-y: auto;
-  gap: 0;
 }
 
 .start-content {
@@ -54,30 +48,22 @@ html, body {
 }
 
 .start-bird-wrap {
-  width: 180px;
-  height: 135px;
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
-  background: #fff;
-  flex-shrink: 0;
+  width: 160px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.2));
 }
-.start-bird {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
+.hero-bird-svg { width: 160px; height: auto; }
 
 .game-title {
   font-size: clamp(2.2rem, 8vw, 3.2rem);
   font-weight: 900;
   line-height: 1.05;
-  color: #1a3a1a;
-  text-shadow: 0 2px 6px rgba(255,255,255,0.6);
 }
 .title-line1 { display: block; color: #1a5c1a; }
-.title-line2 { display: block; color: var(--brown); }
+.title-line2 { display: block; color: #8b4513; }
 
 .start-sub {
   font-size: 1.1rem;
@@ -106,10 +92,10 @@ html, body {
   margin-bottom: 0.4rem;
 }
 
-/* ── GAME SCREEN ────────────────────────────────────────────────── */
-#game-screen {
-  align-items: stretch;
-}
+/* ══════════════════════════════════════════════════════════════════
+   GAME SCREEN LAYOUT
+   ══════════════════════════════════════════════════════════════════ */
+#game-screen { align-items: stretch; }
 
 .game-layout {
   display: flex;
@@ -118,7 +104,7 @@ html, body {
   overflow: hidden;
 }
 
-/* Tree panel */
+/* ── Tree panel ─────────────────────────────────────────────────── */
 .tree-panel {
   flex-shrink: 0;
   display: flex;
@@ -129,11 +115,10 @@ html, body {
 
 .tree-wrap {
   position: relative;
-  /* maintain the SVG's 300:720 aspect ratio */
   aspect-ratio: 300 / 720;
   height: 100dvh;
   max-height: 100dvh;
-  min-width: 100px;
+  min-width: 80px;
 }
 
 #tree-svg {
@@ -145,60 +130,58 @@ html, body {
 
 .branch-star {
   font-size: 18px;
-  transition: opacity 0.4s;
+  transition: opacity 0.5s;
 }
 
-/* Bird */
+/* ── Bird SVG ───────────────────────────────────────────────────── */
 .bird-wrapper {
   position: absolute;
-  width: 23%;          /* ~23% of tree-wrap width ≈ 60 SVG units */
+  width: 24%;          /* ~24% of tree-wrap width ≈ 72 SVG units */
   transform: translateX(-50%);
   transition:
-    left  0.75s cubic-bezier(0.34, 1.56, 0.64, 1),
-    top   0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
+    left  0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+    top   0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 10;
   pointer-events: none;
   will-change: left, top;
 }
 
-.bird-img {
+.bird-svg {
   width: 100%;
   height: auto;
   display: block;
-  mix-blend-mode: multiply;
-  filter: saturate(1.15) brightness(1.02);
-  transform-origin: bottom center;
+  filter: drop-shadow(1px 2px 4px rgba(0,0,0,0.25));
+  transform-origin: center bottom;
 }
 
-.bird-img.flip {
+.bird-svg.flip {
   transform: scaleX(-1);
 }
 
-.bird-img.landing {
+.bird-svg.landing {
   animation: bird-bounce 0.55s ease-out;
 }
 
-.bird-img.flip.landing {
+.bird-svg.flip.landing {
   animation: bird-bounce-flip 0.55s ease-out;
 }
 
 @keyframes bird-bounce {
-  0%   { transform: translateY(-22%); }
-  38%  { transform: translateY(6%);   }
-  60%  { transform: translateY(-8%);  }
-  80%  { transform: translateY(3%);   }
+  0%   { transform: translateY(-20%); }
+  40%  { transform: translateY(5%);   }
+  65%  { transform: translateY(-7%);  }
+  82%  { transform: translateY(2%);   }
   100% { transform: translateY(0);    }
 }
-
 @keyframes bird-bounce-flip {
-  0%   { transform: scaleX(-1) translateY(-22%); }
-  38%  { transform: scaleX(-1) translateY(6%);   }
-  60%  { transform: scaleX(-1) translateY(-8%);  }
-  80%  { transform: scaleX(-1) translateY(3%);   }
+  0%   { transform: scaleX(-1) translateY(-20%); }
+  40%  { transform: scaleX(-1) translateY(5%);   }
+  65%  { transform: scaleX(-1) translateY(-7%);  }
+  82%  { transform: scaleX(-1) translateY(2%);   }
   100% { transform: scaleX(-1) translateY(0);    }
 }
 
-/* Challenge panel */
+/* ── Challenge panel ────────────────────────────────────────────── */
 .challenge-panel {
   flex: 1;
   display: flex;
@@ -210,7 +193,7 @@ html, body {
 }
 
 .challenge-card {
-  background: var(--card-bg);
+  background: #fff;
   border-radius: 1.75rem;
   padding: 1.25rem 1.5rem 1.5rem;
   box-shadow: var(--card-shadow);
@@ -221,147 +204,115 @@ html, body {
   gap: 0.75rem;
 }
 
-/* Card top: progress + label */
+/* Progress dots */
 .card-top {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
 }
-
-.progress-dots {
-  display: flex;
-  gap: 0.4rem;
-}
-
+.progress-dots { display: flex; gap: 0.4rem; }
 .progress-dot {
-  width: 2rem;
-  height: 2rem;
+  width: 2rem; height: 2rem;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 800;
-  transition: background 0.3s, color 0.3s;
-  background: #e8f5e9;
-  color: #aaa;
-  border: 2px solid #ccc;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 800;
+  background: #e8f5e9; color: #aaa; border: 2px solid #ccc;
+  transition: background 0.3s, color 0.3s, transform 0.3s;
 }
-.progress-dot.done {
-  background: var(--correct);
-  color: #fff;
-  border-color: var(--correct);
-}
+.progress-dot.done    { background: var(--correct); color: #fff; border-color: var(--correct); }
 .progress-dot.current {
-  background: var(--orange);
-  color: #fff;
-  border-color: var(--orange);
+  background: var(--orange); color: #fff; border-color: var(--orange);
   transform: scale(1.15);
   box-shadow: 0 0 0 3px rgba(255,140,0,0.25);
 }
-
 .level-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 0.78rem; font-weight: 700; color: #999;
+  text-transform: uppercase; letter-spacing: 0.1em;
 }
 
-/* Challenge content */
-.challenge-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
+/* ── Problem header ─────────────────────────────────────────────── */
+.challenge-content { display: flex; flex-direction: column; gap: 0.65rem; }
 
 .problem-display {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 0.4rem;
-  font-size: 2.4rem;
-  font-weight: 900;
-  color: #1a3a1a;
+  display: flex; align-items: baseline; justify-content: center;
+  gap: 0.4rem; font-size: 2.4rem; font-weight: 900; color: #1a3a1a;
   padding: 0.35rem 0;
 }
-.problem-op {
-  color: var(--orange);
-  font-size: 2rem;
-}
-.problem-eq {
-  color: #aaa;
-  font-size: 2rem;
-  font-weight: 700;
-}
-.problem-question {
-  color: var(--purple);
-  font-size: 2.4rem;
-}
+.problem-op  { color: var(--orange); font-size: 2rem; }
+.problem-eq  { color: #aaa; font-size: 2rem; font-weight: 700; }
+.problem-question { color: #8e44ad; font-size: 2.4rem; }
 
 .method-label {
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #999;
-  text-align: center;
+  font-size: 0.76rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.1em; color: #999; text-align: center;
 }
 
-/* Ladder */
+/* ══════════════════════════════════════════════════════════════════
+   LADDER
+   The ladder replicates the column-multiplication layout from the
+   image: partial products are right-aligned, trailing zeros appear
+   in a fixed-width grey column to the right of each input.
+
+   Layout per row:
+     [label: digit × mult =]  [input][trailing-zeros][spacer]  [✓/✗]
+
+   All rows share the same total "value width":
+     input-width + (--max-tz × --tz-char)
+   so that the rightmost digit of every row lines up perfectly.
+   ══════════════════════════════════════════════════════════════════ */
 .ladder {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  background: #f9f9f9;
+  background: #f8f8f8;
   border-radius: 1rem;
-  padding: 0.75rem 1rem;
-  border: 2px solid #eee;
+  padding: 0.8rem 1rem;
+  border: 2px solid #ececec;
+  /* Custom property set by JS per challenge */
+  --max-tz: 0;
 }
 
 .ladder-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 1.2rem;
+  gap: 0.5rem;
+}
+
+/* Label: "5 × 6 =" */
+.row-label {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  color: #34495e;
+  flex-shrink: 0;
+  min-width: 6.5rem;   /* keeps label column stable */
+}
+.lbl-digit { color: #8e44ad; font-size: 1.2rem; min-width: 1rem; text-align: right; }
+.lbl-sep   { color: var(--orange); font-size: 1.1rem; padding: 0 0.1rem; }
+.lbl-mult  { color: #e74c3c; font-size: 1.2rem; min-width: 0.8rem; }
+.lbl-eq    { color: #aaa; font-size: 1.1rem; padding-left: 0.2rem; }
+
+/* Value area: input + trailing zeros (+ optional spacer) */
+.row-value {
+  display: flex;
+  align-items: center;
+  /* no gap — input and trailing zeros must be flush */
 }
 
-.partial-label {
-  min-width: 3.8rem;
-  text-align: right;
-  color: var(--purple);
-  font-size: 1.15rem;
-}
-
-.op-sign {
-  color: var(--orange);
-  font-size: 1.1rem;
-}
-
-.mult-val {
-  min-width: 1.4rem;
-  color: var(--red);
-  font-size: 1.15rem;
-}
-
-.eq-sign {
-  color: #aaa;
-  font-size: 1.1rem;
-  margin: 0 0.1rem;
-}
-
-/* Inputs */
+/* ── Number input ───────────────────────────────────────────────── */
 .ladder-input {
-  width: 5.2rem;
-  padding: 0.4rem 0.5rem;
-  font-size: 1.2rem;
+  /* Fixed width for up to 2-digit times-table answer (max 9×9=81).
+     Using ch units ties the width to the actual character width. */
+  width: 3.2ch;
+  padding: 0.35rem 0.3rem;
+  font-size: 1.35rem;
   font-family: var(--font);
   font-weight: 800;
-  border: 2.5px dashed #c0c0c0;
-  border-radius: 0.75rem;
+  font-variant-numeric: tabular-nums;  /* all digits same width */
+  border: 2.5px dashed #c8c8c8;
+  border-radius: 0.6rem 0 0 0.6rem;   /* left-rounded only when zeros follow */
   text-align: center;
   outline: none;
   background: #fff;
@@ -372,74 +323,95 @@ html, body {
 .ladder-input::-webkit-outer-spin-button,
 .ladder-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 
-.ladder-input:focus {
-  border-style: solid;
-  border-color: #3498db;
-  background: #eaf4fd;
-}
+.ladder-input:focus   { border-style: solid; border-color: #3498db; background: #eaf4fd; }
+.ladder-input.correct { border-style: solid; border-color: var(--correct); background: #eafaf1; color: var(--correct); }
+.ladder-input.wrong   { border-style: solid; border-color: var(--wrong);   background: #fdedec; color: var(--wrong); }
+.ladder-input:disabled { opacity: 0.6; cursor: default; background: #f4f4f4; }
 
-.ladder-input.correct {
-  border-style: solid;
-  border-color: var(--correct);
-  background: #eafaf1;
-  color: var(--correct);
-}
-
-.ladder-input.wrong {
-  border-style: solid;
-  border-color: var(--wrong);
-  background: #fdedec;
-  color: var(--wrong);
-}
-
-.ladder-input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+/* Trailing zeros — pre-populated, same font as input, grey */
+.trailing-zeros {
+  display: inline-block;
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #aaa;
   background: #f0f0f0;
+  border: 2.5px solid #e0e0e0;
+  border-left: none;          /* flush join with input */
+  border-radius: 0 0.6rem 0.6rem 0;
+  padding: 0.35rem 0.3rem;
+  letter-spacing: 0;
+  /* width = number_of_zeros × --tz-char, set via data-length or inline style */
+  min-width: 0;
+  white-space: nowrap;
+  line-height: 1;
 }
 
+/* When there are no trailing zeros, the input gets fully rounded */
+.trailing-zeros:empty {
+  display: none;
+}
+
+/* Make input fully rounded when no trailing zeros */
+.row-value:has(.trailing-zeros:empty) .ladder-input {
+  border-radius: 0.6rem;
+}
+
+/* Invisible spacer — same font metrics as .trailing-zeros for exact alignment */
+.tz-spacer {
+  display: inline-block;
+  flex-shrink: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: transparent;
+  padding: 0.35rem 0.15rem;  /* match trailing-zeros horizontal padding halved (no border) */
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Row status icon */
 .row-status {
   font-size: 1.1rem;
   min-width: 1.5rem;
   text-align: center;
   font-weight: 900;
+  flex-shrink: 0;
 }
 
-/* Sum line */
+/* Divider line above total */
 .ladder-sum-line {
   border-top: 3px solid #2c3e50;
-  margin: 0.15rem 0;
+  margin: 0.1rem 0;
 }
 
-/* Total row */
+/* ── Total row ──────────────────────────────────────────────────── */
 .total-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 1.3rem;
-  font-weight: 900;
-  padding: 0.25rem 0;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
 }
 
-.total-label {
-  min-width: 3.8rem;
-  text-align: right;
-  color: #2c3e50;
+.total-lbl {
+  min-width: 6.5rem;
   font-size: 1.15rem;
+  font-weight: 800;
 }
+.total-word { color: #2c3e50; }
 
 .total-input {
-  width: 5.8rem;
-  font-size: 1.3rem;
+  width: 5.5ch;           /* up to 4-digit total */
+  border-radius: 0.6rem;  /* fully rounded, no trailing zeros */
+  font-size: 1.35rem;
 }
+.total-input:disabled { opacity: 0.4; cursor: not-allowed; background: #f0f0f0; }
 
 /* Check button row */
-.check-row {
-  text-align: center;
-  margin-top: 0.5rem;
-}
+.check-row { text-align: center; margin-top: 0.6rem; }
 
-/* Feedback message */
+/* Feedback */
 .feedback-msg {
   text-align: center;
   font-size: 0.95rem;
@@ -447,24 +419,20 @@ html, body {
   min-height: 1.4em;
   border-radius: 0.75rem;
   padding: 0.4rem 0.6rem;
-  transition: all 0.3s;
+  transition: all 0.25s;
 }
 .feedback-msg.hint    { color: #555; background: transparent; }
 .feedback-msg.success { color: var(--correct); background: #eafaf1; }
 .feedback-msg.partial { color: #1a7abf; background: #eaf4fd; }
 .feedback-msg.error   { color: var(--wrong);  background: #fdedec; }
 
-/* ── BUTTONS ────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════════════════════════════ */
 .btn {
-  font-family: var(--font);
-  font-weight: 800;
-  font-size: 1.05rem;
-  padding: 0.7rem 1.8rem;
-  border: none;
-  border-radius: 3rem;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
-  letter-spacing: 0.02em;
+  font-family: var(--font); font-weight: 800; font-size: 1.05rem;
+  padding: 0.7rem 1.8rem; border: none; border-radius: 3rem;
+  cursor: pointer; transition: transform 0.15s, filter 0.15s;
 }
 .btn:active { transform: scale(0.96); }
 
@@ -473,28 +441,24 @@ html, body {
   color: #fff;
   box-shadow: 0 5px 18px rgba(255,87,34,0.35);
 }
-.btn-primary:hover { filter: brightness(1.08); box-shadow: 0 7px 22px rgba(255,87,34,0.45); }
+.btn-primary:hover { filter: brightness(1.08); }
 
 .btn-check {
+  font-family: var(--font); font-weight: 800; font-size: 1rem;
+  padding: 0.6rem 1.6rem; border-radius: 3rem; border: none;
   background: linear-gradient(135deg, #3498db, #2980b9);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(52,152,219,0.3);
-  font-size: 1rem;
-  padding: 0.6rem 1.6rem;
-  border-radius: 3rem;
-  border: none;
-  font-family: var(--font);
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  color: #fff; box-shadow: 0 4px 14px rgba(52,152,219,0.3);
+  cursor: pointer; transition: transform 0.15s, filter 0.15s;
 }
 .btn-check:hover  { filter: brightness(1.08); }
 .btn-check:active { transform: scale(0.95); }
 .btn-check:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ── SHAKE ──────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ══════════════════════════════════════════════════════════════════ */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
+  0%, 100% { transform: translateX(0);   }
   18%       { transform: translateX(-7px); }
   36%       { transform: translateX(7px);  }
   54%       { transform: translateX(-5px); }
@@ -503,149 +467,99 @@ html, body {
 }
 .shake { animation: shake 0.38s ease-out; }
 
-/* ── STAR BURST ─────────────────────────────────────────────────── */
 @keyframes star-burst {
   0%   { transform: translate(0, 0) scale(1);   opacity: 1; }
-  100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
 }
 .burst-star {
-  position: fixed;
-  font-size: 1.4rem;
-  pointer-events: none;
-  z-index: 9999;
-  animation: star-burst 0.85s ease-out forwards;
-  transform-origin: center;
+  position: fixed; font-size: 1.4rem; pointer-events: none;
+  z-index: 9999; animation: star-burst 0.85s ease-out forwards;
 }
 
-/* ── WIN SCREEN ─────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   WIN SCREEN
+   ══════════════════════════════════════════════════════════════════ */
 #win-screen {
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 2rem;
-  overflow-y: auto;
-  text-align: center;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 1rem; padding: 2rem; overflow-y: auto; text-align: center;
 }
 
 .confetti-container {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
+  position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
 }
-
 @keyframes confetti-fall {
   0%   { transform: translateY(-10vh) rotate(0deg);   opacity: 1; }
   100% { transform: translateY(110vh) rotate(720deg); opacity: 0.3; }
 }
 .confetti-piece {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
+  position: absolute; border-radius: 2px;
   animation: confetti-fall linear forwards;
 }
 
 .win-content {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 1rem; max-width: 400px;
+}
+.win-bird-wrap {
   position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  max-width: 400px;
+  width: 180px; height: 160px;
+  display: flex; align-items: center; justify-content: center;
 }
+.win-bird-svg  { width: 160px; height: auto; filter: drop-shadow(0 6px 18px rgba(0,0,0,0.2)); }
+.nest-emoji    { position: absolute; bottom: -0.3rem; right: 0.5rem; font-size: 2.5rem; }
+.win-title     { font-size: 2.8rem; font-weight: 900; color: #1a3a1a; }
+.win-sub       { font-size: 1.3rem; font-weight: 700; color: #2d6a2d; }
+.win-detail    { font-size: 1rem; color: #555; line-height: 1.5; }
 
-.win-nest-scene {
-  position: relative;
-  width: 180px;
-  height: 150px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-.win-bird {
-  width: 160px;
-  height: 120px;
-  object-fit: cover;
-  object-position: center top;
-  border-radius: 1rem;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-  mix-blend-mode: multiply;
-}
-.win-nest-emoji {
-  position: absolute;
-  bottom: -0.5rem;
-  right: 0;
-  font-size: 2.5rem;
-}
-
-.win-title {
-  font-size: 2.8rem;
-  font-weight: 900;
-  color: #1a3a1a;
-}
-
-.win-sub {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #2d6a2d;
-}
-
-.win-detail {
-  font-size: 1rem;
-  color: #555;
-  line-height: 1.5;
-}
-
-/* ── RESPONSIVE ─────────────────────────────────────────────────── */
-
-/* Small desktop / tablet landscape */
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  .challenge-card { padding: 1rem 1.2rem 1.25rem; }
+  .challenge-card  { padding: 1rem 1.2rem 1.25rem; }
   .problem-display { font-size: 2rem; }
 }
 
-/* Portrait / mobile */
 @media (max-width: 600px) {
-  .game-layout {
-    flex-direction: column-reverse;
-  }
+  /* Stack: challenge on top, tree thumbnail at bottom */
+  .game-layout { flex-direction: column-reverse; }
 
   .tree-panel {
     flex-shrink: 0;
-    height: 38dvh;
-    padding: 0.25rem;
+    height: 36dvh;
     overflow: hidden;
+    padding: 0.25rem;
+    align-items: flex-end;
+    justify-content: center;
   }
-
   .tree-wrap {
     height: 100%;
     aspect-ratio: 300 / 720;
-    max-width: 160px;
+    max-width: 180px;
   }
+  .bird-wrapper { width: 30%; }
 
   .challenge-panel {
     flex: 1;
-    padding: 0.75rem;
+    padding: 0.75rem 0.75rem 0.5rem;
     align-items: flex-start;
     overflow-y: auto;
   }
-
   .challenge-card {
     border-radius: 1.25rem;
     padding: 0.9rem 1rem 1rem;
     gap: 0.5rem;
   }
+  .problem-display { font-size: 1.75rem; }
 
-  .problem-display { font-size: 1.8rem; }
-  .ladder { padding: 0.5rem 0.75rem; gap: 0.4rem; }
-  .ladder-input, .total-input { width: 4.5rem; font-size: 1.1rem; }
-  .partial-label, .total-label { min-width: 3.2rem; font-size: 1rem; }
+  .ladder { padding: 0.6rem 0.75rem; gap: 0.4rem; }
+  .row-label { min-width: 5.8rem; font-size: 1rem; }
+  .lbl-digit, .lbl-mult { font-size: 1rem; }
+  .ladder-input, .trailing-zeros { font-size: 1.15rem; }
+  .ladder-input { width: 2.8ch; }
+  .total-input  { width: 4.8ch; font-size: 1.15rem; }
 }
 
 @media (max-height: 680px) and (max-width: 600px) {
-  .tree-panel { height: 32dvh; }
+  .tree-panel { height: 30dvh; }
 }

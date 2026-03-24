@@ -1,0 +1,11 @@
+{
+  "name": "bird-ladder-maths",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 4174",
+    "test:screenshots": "npx playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2"
+  }
+}
