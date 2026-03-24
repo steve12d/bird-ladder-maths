@@ -186,6 +186,21 @@ if (treeModal)      treeModal.addEventListener('click', e => { if (e.target === 
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('play-again-btn').addEventListener('click', resetGame);
 
+/* ── Global keydown rerouter ────────────────────────────────────── */
+// If focus drifts off a digit box (e.g. user clicked a label or the card),
+// route useful keypresses back to the tracked active input automatically.
+document.addEventListener('keydown', function(e) {
+  if (!activeInputEl) return;
+  const active = document.activeElement;
+  // Already on a digit box — its own handler will take care of it
+  if (active && (active.dataset.dig !== undefined || active.dataset.totaldig !== undefined)) return;
+  if (/^[0-9]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Enter') {
+    e.preventDefault();
+    activeInputEl.focus();
+    activeInputEl.dispatchEvent(new KeyboardEvent('keydown', { key: e.key, bubbles: true, cancelable: true }));
+  }
+});
+
 /* ── Numpad wiring ──────────────────────────────────────────────── */
 document.querySelectorAll('.nk').forEach(btn => {
   const key = btn.dataset.key;
@@ -662,7 +677,9 @@ function renderChallenge() {
     inp.addEventListener('click', () => setActiveInput(inp));
   }
 
-  document.getElementById('check-btn').addEventListener('click', handleCheck);
+  const checkBtn = document.getElementById('check-btn');
+  checkBtn.addEventListener('mousedown', e => e.preventDefault()); // prevent focus theft
+  checkBtn.addEventListener('click', handleCheck);
 
   // Focus first input (also sets it as active for numpad)
   const firstInp = document.getElementById('partial-0-0');
