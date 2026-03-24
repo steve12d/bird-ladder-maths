@@ -41,19 +41,41 @@ function playWrong() {
   tone(240, 0.14, 'sawtooth', 0.09, 90);
 }
 
-/* ── Challenge data ─────────────────────────────────────────────── */
-// Progressively harder for ages 8–10.
-// Ladder method: each digit of the multiplicand × the multiplier,
-// placed at its correct position (trailing zeros = place value).
-const CHALLENGES = [
-  { multiplicand: 13,  multiplier: 2, intro: "Let's start climbing! 🌿"           },
-  { multiplicand: 24,  multiplier: 4, intro: "Up we go! 🍃"                        },
-  { multiplicand: 36,  multiplier: 5, intro: "Going higher! 🌱"                    },
-  { multiplicand: 123, multiplier: 3, intro: "Three digits — you've got this! 🌟"  },
-  { multiplicand: 245, multiplier: 4, intro: "More than halfway up! ⭐"             },
-  { multiplicand: 347, multiplier: 6, intro: "Nearly at the top! 🌈"               },
-  { multiplicand: 489, multiplier: 7, intro: "Last branch — the nest is close! 🪺" },
+/* ── Challenge generator ────────────────────────────────────────── */
+// Generates 7 fresh, progressively harder problems each game.
+// Tiers (branch 0–6):
+//   0-1  2-digit × 2-4  (warm-up)
+//   2-3  2-digit × 4-7  (moderate)
+//   4    3-digit × 2-4  (introduces hundreds)
+//   5    3-digit × 4-6  (building up)
+//   6    3-digit × 6-9  (peak)
+
+function rnd(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function makeProblem(minN, maxN, minM, maxM) {
+  let n, attempts = 0;
+  // Prefer no-zero digits so every digit produces a ladder row
+  do { n = rnd(minN, maxN); attempts++; } while (String(n).includes('0') && attempts < 40);
+  return { multiplicand: n, multiplier: rnd(minM, maxM) };
+}
+
+const TIER_PARAMS = [
+  { minN:  11, maxN:  39, minM: 2, maxM: 4 },  // branch 0
+  { minN:  21, maxN:  59, minM: 2, maxM: 4 },  // branch 1
+  { minN:  31, maxN:  79, minM: 4, maxM: 6 },  // branch 2
+  { minN:  41, maxN:  89, minM: 4, maxM: 7 },  // branch 3
+  { minN: 111, maxN: 299, minM: 2, maxM: 4 },  // branch 4
+  { minN: 211, maxN: 499, minM: 4, maxM: 6 },  // branch 5
+  { minN: 311, maxN: 699, minM: 6, maxM: 9 },  // branch 6
 ];
+
+let CHALLENGES = [];
+
+function generateChallenges() {
+  CHALLENGES = TIER_PARAMS.map(t => makeProblem(t.minN, t.maxN, t.minM, t.maxM));
+}
 
 /* ── Bird positions (desktop) ───────────────────────────────────── */
 // left/top as % of tree-wrap (300×720 SVG coordinate space).
@@ -478,6 +500,7 @@ function renderChallenge() {
         data-row="${i}"
         data-dig="${d}"
         data-sigcount="${sigDigits}"
+        data-answer="${ansStr.slice(0, sigDigits)[d]}"
         autocomplete="off"
         aria-label="${p.placeValue} times ${ch.multiplier} digit ${d+1}">`;
     }
@@ -826,14 +849,24 @@ function checkTotal() {
     showFeedback('Not quite — check your addition!', 'error');
     const gridTotal = document.getElementById('grid-total');
     if (gridTotal) shakeEl(gridTotal);
+
+    // Flash red briefly, then clear and refocus rightmost (RTL restart)
+    const totalBoxes = [];
     for (let d = 0; d < totalDigits; d++) {
       const box = document.getElementById(`total-${d}`);
       if (box) {
         box.classList.add('digit-wrong');
-        box.classList.remove('digit-correct');
+        box.classList.remove('digit-correct', 'nk-active');
         box.value = '';
+        totalBoxes.push(box);
       }
     }
+    setTimeout(() => {
+      totalBoxes.forEach(b => b.classList.remove('digit-wrong'));
+      totalStat.textContent = '';
+      const last = document.getElementById(`total-${totalDigits - 1}`);
+      if (last) { last.classList.add('total-start'); last.focus(); setActiveInput(last); }
+    }, 500);
   }
 }
 
@@ -865,6 +898,7 @@ function advanceLevel() {
    GAME LIFECYCLE
    ═══════════════════════════════════════════════════════════════════ */
 function startGame() {
+  generateChallenges();   // fresh random set every game
   startScreen.classList.remove('active');
   gameScreen.classList.add('active');
   currentLevel = 0;

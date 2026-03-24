@@ -60,28 +60,54 @@ test('ladder method: correct answer advances the bird', async ({ page }, testInf
   await page.goto('/', { waitUntil: 'networkidle' });
   await page.click('#start-btn');
 
-  // Challenge 1: 13 × 2
-  // Row 0: placeValue=10, answer=10×2=20 → sig digits = "2" (1 box), trailing zero = 1
-  // Row 1: placeValue=3,  answer=3×2=6   → sig digits = "6" (1 box), trailing zero = 0
-  // Total: 26 → 2 boxes: "2" and "6"
+  // Challenges are random — read correct answers from data-answer attributes
+  // stamped on each digit box by the game itself.
 
-  // Row 0: sig digit "2" → partial-0-0
-  await setInputValue(page, '#partial-0-0', '2');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(150);
+  // Collect all partial digit boxes grouped by row
+  const partialRows = await page.evaluate(() => {
+    const rows = [];
+    let r = 0;
+    while (document.getElementById(`partial-${r}-0`)) {
+      const boxes = [];
+      let d = 0;
+      while (document.getElementById(`partial-${r}-${d}`)) {
+        const el = document.getElementById(`partial-${r}-${d}`);
+        boxes.push({ id: `#partial-${r}-${d}`, answer: el.dataset.answer });
+        d++;
+      }
+      rows.push(boxes);
+      r++;
+    }
+    return rows;
+  });
 
-  // Row 1: sig digit "6" → partial-1-0
-  await setInputValue(page, '#partial-1-0', '6');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(150);
+  // Fill and submit each partial row
+  for (const row of partialRows) {
+    for (const { id, answer } of row) {
+      await setInputValue(page, id, answer);
+    }
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(150);
+  }
 
-  // Total: 26 → total-0="2", total-1="6"
-  await setInputValue(page, '#total-0', '2');
-  await setInputValue(page, '#total-1', '6');
+  // Collect and fill total boxes (data-answer already stamped on each)
+  const totalBoxes = await page.evaluate(() => {
+    const boxes = [];
+    let d = 0;
+    while (document.getElementById(`total-${d}`)) {
+      const el = document.getElementById(`total-${d}`);
+      boxes.push({ id: `#total-${d}`, answer: el.dataset.answer });
+      d++;
+    }
+    return boxes;
+  });
+  for (const { id, answer } of totalBoxes) {
+    await setInputValue(page, id, answer);
+  }
   await page.click('#check-btn');
 
-  // Bird should hop (wait for transition + render next challenge)
-  await expect(page.locator('#partial-0-0')).toBeVisible({ timeout: 3000 });
+  // Bird should hop (wait for next challenge to render)
+  await expect(page.locator('#partial-0-0')).toBeVisible({ timeout: 4000 });
 
   await page.screenshot({ path: `test-results/${testInfo.project.name}-after-level1.png`, fullPage: false });
 });
