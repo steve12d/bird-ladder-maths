@@ -10,10 +10,6 @@
   --orange:     #ff8c00;
   --card-shadow: 0 8px 32px rgba(0,0,0,0.13);
   --font:       'Nunito', sans-serif;
-  /* Width of one pre-populated trailing-zero character.
-     Calculated from the ladder's font size (1.4rem @ 16px = 22.4px).
-     We use ch units so it scales with font-size. */
-  --tz-char: 1.05rem;   /* ≈ width of '0' at the ladder's font size */
 }
 
 html, body {
@@ -250,16 +246,13 @@ html, body {
 
 /* ══════════════════════════════════════════════════════════════════
    LADDER
-   The ladder replicates the column-multiplication layout from the
-   image: partial products are right-aligned, trailing zeros appear
-   in a fixed-width grey column to the right of each input.
+   The ladder shows full place-value × multiplier = partial product.
+   Students type the full partial product (e.g. "80" not "8").
+   After a correct answer the input is replaced with a styled display
+   that highlights significant digits (green) and trailing zeros (orange).
 
    Layout per row:
-     [label: digit × mult =]  [input][trailing-zeros][spacer]  [✓/✗]
-
-   All rows share the same total "value width":
-     input-width + (--max-tz × --tz-char)
-   so that the rightmost digit of every row lines up perfectly.
+     [label: 300 × 6 =]  [input or display]  [✓/✗]
    ══════════════════════════════════════════════════════════════════ */
 .ladder {
   display: flex;
@@ -269,8 +262,6 @@ html, body {
   border-radius: 1rem;
   padding: 0.8rem 1rem;
   border: 2px solid #ececec;
-  /* Custom property set by JS per challenge */
-  --max-tz: 0;
 }
 
 .ladder-row {
@@ -279,7 +270,7 @@ html, body {
   gap: 0.5rem;
 }
 
-/* Label: "5 × 6 =" */
+/* Label: "300 × 6 =" */
 .row-label {
   display: flex;
   align-items: center;
@@ -287,33 +278,24 @@ html, body {
   font-size: 1.15rem;
   font-weight: 700;
   flex-shrink: 0;
-  min-width: 6.5rem;   /* keeps label column stable */
+  min-width: 8rem;   /* fits "400 × 7 =" */
 }
-.lbl-digit { color: #8e44ad; font-size: 1.2rem; min-width: 1rem; text-align: right; }
+.lbl-place { color: #8e44ad; font-size: 1.2rem; min-width: 1rem; text-align: right; }
 .lbl-sep   { color: var(--orange); font-size: 1.1rem; padding: 0 0.1rem; }
 .lbl-mult  { color: #e74c3c; font-size: 1.2rem; min-width: 0.8rem; }
 .lbl-eq    { color: #aaa; font-size: 1.1rem; padding-left: 0.2rem; }
 
-/* Value area: input + trailing zeros (+ optional spacer) */
-.row-value {
-  display: flex;
-  align-items: center;
-  /* no gap — input and trailing zeros must be flush */
-}
-
 /* ── Number input ───────────────────────────────────────────────── */
 .ladder-input {
-  /* Fixed width for up to 2-digit times-table answer (max 9×9=81).
-     Using ch units ties the width to the actual character width. */
-  width: 3.2ch;
-  padding: 0.35rem 0.3rem;
+  width: 5.5ch;
+  padding: 0.35rem 0.4rem;
   font-size: 1.35rem;
   font-family: var(--font);
   font-weight: 800;
-  font-variant-numeric: tabular-nums;  /* all digits same width */
+  font-variant-numeric: tabular-nums;
   border: 2.5px dashed #c8c8c8;
-  border-radius: 0.6rem 0 0 0.6rem;   /* left-rounded only when zeros follow */
-  text-align: center;
+  border-radius: 0.6rem;
+  text-align: right;
   outline: none;
   background: #fff;
   color: #222;
@@ -328,48 +310,29 @@ html, body {
 .ladder-input.wrong   { border-style: solid; border-color: var(--wrong);   background: #fdedec; color: var(--wrong); }
 .ladder-input:disabled { opacity: 0.6; cursor: default; background: #f4f4f4; }
 
-/* Trailing zeros — pre-populated, same font as input, grey */
-.trailing-zeros {
-  display: inline-block;
+/* Active input highlight (numpad) */
+.ladder-input.nk-active {
+  border-style: solid;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(255,140,0,0.2);
+}
+
+/* ── Correct answer display (replaces input after correct partial) */
+.partial-display {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 5.5ch;
   font-size: 1.35rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: #aaa;
-  background: #f0f0f0;
-  border: 2.5px solid #e0e0e0;
-  border-left: none;          /* flush join with input */
-  border-radius: 0 0.6rem 0.6rem 0;
-  padding: 0.35rem 0.3rem;
-  letter-spacing: 0;
-  /* width = number_of_zeros × --tz-char, set via data-length or inline style */
-  min-width: 0;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-/* When there are no trailing zeros, the input gets fully rounded */
-.trailing-zeros:empty {
-  display: none;
-}
-
-/* Make input fully rounded when no trailing zeros */
-.row-value:has(.trailing-zeros:empty) .ladder-input {
+  background: #eafaf1;
+  border: 2.5px solid var(--correct);
   border-radius: 0.6rem;
+  padding: 0.35rem 0.4rem;
 }
-
-/* Invisible spacer — same font metrics as .trailing-zeros for exact alignment */
-.tz-spacer {
-  display: inline-block;
-  flex-shrink: 0;
-  font-size: 1.35rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: transparent;
-  padding: 0.35rem 0.15rem;  /* match trailing-zeros horizontal padding halved (no border) */
-  line-height: 1;
-  pointer-events: none;
-  user-select: none;
-}
+.partial-display .sig { color: var(--correct); }
+.partial-display .tz  { color: #e67e22; }
 
 /* Row status icon */
 .row-status {
@@ -395,16 +358,17 @@ html, body {
 }
 
 .total-lbl {
-  min-width: 6.5rem;
+  min-width: 8rem;
   font-size: 1.15rem;
   font-weight: 800;
 }
 .total-word { color: #2c3e50; }
 
 .total-input {
-  width: 5.5ch;           /* up to 4-digit total */
-  border-radius: 0.6rem;  /* fully rounded, no trailing zeros */
+  width: 5.5ch;
+  border-radius: 0.6rem;
   font-size: 1.35rem;
+  text-align: right;
 }
 .total-input:disabled { opacity: 0.4; cursor: not-allowed; background: #f0f0f0; }
 
@@ -425,6 +389,48 @@ html, body {
 .feedback-msg.success { color: var(--correct); background: #eafaf1; }
 .feedback-msg.partial { color: #1a7abf; background: #eaf4fd; }
 .feedback-msg.error   { color: var(--wrong);  background: #fdedec; }
+
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOM NUMPAD
+   ══════════════════════════════════════════════════════════════════ */
+.numpad {
+  display: none; /* hidden on desktop */
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding: 0.6rem 0.5rem 0.5rem;
+  border-top: 2px solid #f0f0f0;
+  margin-top: 0.5rem;
+  border-radius: 0 0 1.5rem 1.5rem;
+  box-shadow: 0 -3px 10px rgba(0,0,0,0.06);
+}
+.numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+.nk {
+  font-family: var(--font);
+  font-size: 1.4rem;
+  font-weight: 800;
+  padding: 0.7rem 0;
+  border: none;
+  border-radius: 0.75rem;
+  background: #eef2ff;
+  color: #2c3e50;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  transition: transform 0.1s, background 0.1s;
+}
+.nk:active { transform: scale(0.88); background: #dde4ff; }
+.nk-back { background: #fff0f0; color: #e74c3c; }
+.nk-enter { background: linear-gradient(135deg, #3498db, #2980b9); color: #fff; font-size: 1.5rem; }
+
+/* Show on mobile/tablet */
+@media (max-width: 900px) {
+  .numpad { display: block; }
+}
 
 /* ══════════════════════════════════════════════════════════════════
    BUTTONS
@@ -526,7 +532,7 @@ html, body {
 
   .tree-panel {
     flex-shrink: 0;
-    height: 36dvh;
+    height: 22dvh;
     overflow: hidden;
     padding: 0.25rem;
     align-items: flex-end;
@@ -553,13 +559,12 @@ html, body {
   .problem-display { font-size: 1.75rem; }
 
   .ladder { padding: 0.6rem 0.75rem; gap: 0.4rem; }
-  .row-label { min-width: 5.8rem; font-size: 1rem; }
-  .lbl-digit, .lbl-mult { font-size: 1rem; }
-  .ladder-input, .trailing-zeros { font-size: 1.15rem; }
-  .ladder-input { width: 2.8ch; }
-  .total-input  { width: 4.8ch; font-size: 1.15rem; }
+  .row-label { min-width: 6.5rem; font-size: 1rem; }
+  .lbl-place, .lbl-mult { font-size: 1rem; }
+  .ladder-input { font-size: 1.15rem; }
+  .total-input  { font-size: 1.15rem; }
 }
 
 @media (max-height: 680px) and (max-width: 600px) {
-  .tree-panel { height: 30dvh; }
+  .tree-panel { height: 18dvh; }
 }
