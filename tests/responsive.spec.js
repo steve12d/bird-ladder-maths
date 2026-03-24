@@ -23,9 +23,9 @@ test('game screen (first challenge) fits viewport', async ({ page }, testInfo) =
   await page.goto('/', { waitUntil: 'networkidle' });
   await page.click('#start-btn');
 
-  // Wait for game screen and first ladder input
+  // Wait for game screen and first digit box of first partial row
   await expect(page.locator('#game-screen')).toBeVisible();
-  await expect(page.locator('#partial-0')).toBeVisible();
+  await expect(page.locator('#partial-0-0')).toBeVisible();
 
   // No overflow
   const overflow = await page.evaluate(() => ({
@@ -61,26 +61,27 @@ test('ladder method: correct answer advances the bird', async ({ page }, testInf
   await page.click('#start-btn');
 
   // Challenge 1: 13 × 2
-  // Row 0: placeValue=10, answer=10×2=20  → type "20"
-  // Row 1: placeValue=3,  answer=3×2=6    → type "6"
-  // Total: 26
-  // Use evaluate-based fill to support both desktop (editable) and mobile (readOnly numpad mode)
-  await setInputValue(page, '#partial-0', '20');
-  await page.keyboard.press('Enter');
+  // Row 0: placeValue=10, answer=10×2=20 → sig digits = "2" (1 box), trailing zero = 1
+  // Row 1: placeValue=3,  answer=3×2=6   → sig digits = "6" (1 box), trailing zero = 0
+  // Total: 26 → 2 boxes: "2" and "6"
 
-  // After row 0's Enter, the input is replaced with a partial-display.
-  // Wait a moment for the DOM update, then fill row 1.
-  await page.waitForTimeout(100);
-  await setInputValue(page, '#partial-1', '6');
+  // Row 0: sig digit "2" → partial-0-0
+  await setInputValue(page, '#partial-0-0', '2');
   await page.keyboard.press('Enter');
+  await page.waitForTimeout(150);
 
-  // After row 1's Enter, total-input is enabled. Wait for it.
-  await page.waitForTimeout(100);
-  await setInputValue(page, '#total-input', '26');
+  // Row 1: sig digit "6" → partial-1-0
+  await setInputValue(page, '#partial-1-0', '6');
   await page.keyboard.press('Enter');
+  await page.waitForTimeout(150);
+
+  // Total: 26 → total-0="2", total-1="6"
+  await setInputValue(page, '#total-0', '2');
+  await setInputValue(page, '#total-1', '6');
+  await page.click('#check-btn');
 
   // Bird should hop (wait for transition + render next challenge)
-  await expect(page.locator('#partial-0')).toBeVisible({ timeout: 3000 });
+  await expect(page.locator('#partial-0-0')).toBeVisible({ timeout: 3000 });
 
   await page.screenshot({ path: `test-results/${testInfo.project.name}-after-level1.png`, fullPage: false });
 });

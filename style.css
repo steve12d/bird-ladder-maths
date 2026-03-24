@@ -231,9 +231,11 @@ html, body {
   gap: 0.75rem;
 }
 
-/* Scrollable inner wrapper (used on mobile to keep numpad pinned) */
+/* Scrollable inner wrapper — desktop: normal flex wrapper */
 .challenge-scrollable {
-  display: contents; /* desktop: transparent wrapper */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 /* Progress dots */
@@ -258,10 +260,6 @@ html, body {
   transform: scale(1.15);
   box-shadow: 0 0 0 3px rgba(255,140,0,0.25);
 }
-.level-label {
-  font-size: 0.78rem; font-weight: 700; color: #999;
-  text-transform: uppercase; letter-spacing: 0.1em;
-}
 
 /* ── Problem header ─────────────────────────────────────────────── */
 .challenge-content { display: flex; flex-direction: column; gap: 0.65rem; }
@@ -282,13 +280,6 @@ html, body {
 
 /* ══════════════════════════════════════════════════════════════════
    LADDER
-   The ladder shows full place-value × multiplier = partial product.
-   Students type the full partial product (e.g. "80" not "8").
-   After a correct answer the input is replaced with a styled display
-   that highlights significant digits (green) and trailing zeros (orange).
-
-   Layout per row:
-     [label: 300 × 6 =]  [input or display]  [✓/✗]
    ══════════════════════════════════════════════════════════════════ */
 .ladder {
   display: flex;
@@ -321,54 +312,60 @@ html, body {
 .lbl-mult  { color: #e74c3c; font-size: 1.2rem; min-width: 0.8rem; }
 .lbl-eq    { color: #aaa; font-size: 1.1rem; padding-left: 0.2rem; }
 
-/* ── Number input ───────────────────────────────────────────────── */
-.ladder-input {
-  width: 5.5ch;
-  padding: 0.35rem 0.4rem;
-  font-size: 1.35rem;
+/* ── Digit grid ─────────────────────────────────────────────────── */
+.digit-area {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.digit-spacer {
+  display: inline-block;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
+}
+.digit-box {
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
+  border: 2px solid #c8c8c8;
+  border-radius: 5px;
+  text-align: center;
+  font-size: 1.2rem;
   font-family: var(--font);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  border: 2.5px dashed #c8c8c8;
-  border-radius: 0.6rem;
-  text-align: right;
-  outline: none;
   background: #fff;
   color: #222;
-  transition: border-color 0.2s, background 0.2s, color 0.2s;
-  -moz-appearance: textfield;
+  outline: none;
+  padding: 0;
+  caret-color: transparent;
+  transition: border-color 0.15s, background 0.15s;
+  margin-right: 3px;
 }
-.ladder-input::-webkit-outer-spin-button,
-.ladder-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-
-.ladder-input:focus   { border-style: solid; border-color: #3498db; background: #eaf4fd; }
-.ladder-input.correct { border-style: solid; border-color: var(--correct); background: #eafaf1; color: var(--correct); }
-.ladder-input.wrong   { border-style: solid; border-color: var(--wrong);   background: #fdedec; color: var(--wrong); }
-.ladder-input:disabled { opacity: 0.6; cursor: default; background: #f4f4f4; }
-
-/* Active input highlight (numpad) */
-.ladder-input.nk-active {
-  border-style: solid;
+.digit-box:last-child { margin-right: 0; }
+.digit-box:focus, .digit-box.nk-active {
   border-color: var(--orange);
-  box-shadow: 0 0 0 3px rgba(255,140,0,0.2);
+  background: #fff8f0;
+  box-shadow: 0 0 0 2px rgba(255,140,0,0.2);
 }
-
-/* ── Correct answer display (replaces input after correct partial) */
-.partial-display {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 5.5ch;
-  font-size: 1.35rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
+.digit-box.digit-zero {
+  background: #f4f4f4;
+  color: #bbb;
+  border-style: dashed;
+  border-color: #ddd;
+  pointer-events: none;
+}
+.digit-box.digit-correct {
+  border-color: var(--correct);
   background: #eafaf1;
-  border: 2.5px solid var(--correct);
-  border-radius: 0.6rem;
-  padding: 0.35rem 0.4rem;
+  color: var(--correct);
 }
-.partial-display .sig { color: var(--correct); }
-.partial-display .tz  { color: #e67e22; }
+.digit-box.digit-wrong {
+  border-color: var(--wrong);
+  background: #fdedec;
+  color: var(--wrong);
+}
 
 /* Row status icon */
 .row-status {
@@ -399,14 +396,6 @@ html, body {
   font-weight: 800;
 }
 .total-word { color: #2c3e50; }
-
-.total-input {
-  width: 5.5ch;
-  border-radius: 0.6rem;
-  font-size: 1.35rem;
-  text-align: right;
-}
-.total-input:disabled { opacity: 0.4; cursor: not-allowed; background: #f0f0f0; }
 
 /* Check button row */
 .check-row { text-align: center; margin-top: 0.6rem; }
@@ -476,7 +465,11 @@ html, body {
   aspect-ratio: 300 / 720;
   box-shadow: 0 16px 48px rgba(0,0,0,0.4);
 }
-.tree-modal-svg { width: 100%; height: 100%; }
+.tree-modal-svg {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
 .tree-modal-svg svg { width: 100%; height: 100%; display: block; }
 .tree-modal-close {
   position: absolute;
@@ -631,80 +624,101 @@ html, body {
   .problem-display { font-size: 2rem; }
 }
 
+/* mobile (≤600px): tree on LEFT side, numpad never covers content */
 @media (max-width: 600px) {
-  /* Stack: challenge on top, tree thumbnail at bottom */
+  /* Keep flex-direction: row — tree is narrow LEFT column */
   .game-layout {
-    flex-direction: column-reverse;
-    overflow: hidden;       /* prevent page scroll */
+    flex-direction: row;
+    overflow: hidden;
     height: 100dvh;
   }
 
   .tree-panel {
+    width: 22vw;
+    max-width: 90px;
     flex-shrink: 0;
-    height: 19dvh;
+    height: 100dvh;
     overflow: hidden;
-    padding: 0.2rem 0.3rem;
-    align-items: flex-end;
+    padding: 0;
+    align-items: center;
     justify-content: center;
   }
-  .tree-wrap {
-    height: 100%;
-    aspect-ratio: 300 / 720;
-    max-width: 160px;
-  }
-  .tree-zoom-btn { display: block; }   /* show zoom hint on mobile */
-  .bird-wrapper { width: 30%; }
 
-  /* Challenge panel fills remaining height, no scroll on outer */
+  .tree-wrap {
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: unset;
+    min-width: unset;
+    max-height: unset;
+  }
+
+  #tree-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .tree-zoom-btn { display: block; }
+
+  .bird-wrapper { width: 40%; }
+
+  /* Challenge panel: remaining width, full height */
   .challenge-panel {
     flex: 1;
-    min-height: 0;
-    padding: 0.5rem 0.5rem 0;
-    align-items: stretch;
+    height: 100dvh;
     overflow: hidden;
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
   }
 
   /* Card fills panel height, pins numpad at bottom */
   .challenge-card {
     height: 100%;
-    border-radius: 1.25rem 1.25rem 0 0;
-    padding: 0;
-    gap: 0;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
+    padding: 0;
+    border-radius: 0.75rem;
+    gap: 0;
+    max-width: none;
   }
 
   /* Scrollable inner content area */
   .challenge-scrollable {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 0.75rem 1rem 0.5rem;
+    padding: 0.75rem 0.9rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
   }
 
   .numpad {
     flex-shrink: 0;
-    margin-top: 0;
+    position: static;
+    margin: 0;
     border-radius: 0;
-    position: static;      /* not sticky — always at card bottom */
     border-top: 2px solid #eee;
-    padding: 0.35rem 0.4rem 0.3rem;
+    padding: 0.3rem 0.35rem 0.25rem;
+    box-shadow: none;
   }
   .numpad-grid { gap: 0.3rem; }
-  .nk { font-size: 1.15rem; padding: 0.45rem 0; }
-  .nk-enter { font-size: 1.2rem; }
+  .nk { font-size: 1.1rem; padding: 0.4rem 0; border-radius: 0.6rem; }
+  .nk-enter { font-size: 1.15rem; }
 
   .problem-display { font-size: 1.7rem; }
   .ladder { padding: 0.5rem 0.7rem; gap: 0.4rem; }
   .row-label { min-width: 6.5rem; font-size: 1rem; }
   .lbl-place, .lbl-mult { font-size: 1rem; }
-  .ladder-input { font-size: 1.1rem; }
-  .total-input  { font-size: 1.1rem; }
+
+  /* mobile: smaller digit boxes */
+  .digit-box, .digit-spacer { width: 1.75rem; height: 1.75rem; margin-right: 2px; }
+  .digit-box { font-size: 1rem; border-radius: 4px; }
 }
 
 @media (max-height: 680px) and (max-width: 600px) {
-  .tree-panel { height: 15dvh; }
   .nk { padding: 0.35rem 0; font-size: 1.05rem; }
 }

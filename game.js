@@ -41,12 +41,6 @@ function playWrong() {
   tone(240, 0.14, 'sawtooth', 0.09, 90);
 }
 
-/** Quiet warble — idle chirp */
-function playIdleChirp() {
-  tone(660, 0.07, 'sine', 0.10);
-  tone(880, 0.06, 'sine', 0.08, 90);
-}
-
 /* ── Challenge data ─────────────────────────────────────────────── */
 // Progressively harder for ages 8–10.
 // Ladder method: each digit of the multiplicand × the multiplier,
@@ -61,7 +55,7 @@ const CHALLENGES = [
   { multiplicand: 489, multiplier: 7, intro: "Last branch — the nest is close! 🪺" },
 ];
 
-/* ── Bird positions ─────────────────────────────────────────────── */
+/* ── Bird positions (desktop) ───────────────────────────────────── */
 // left/top as % of tree-wrap (300×720 SVG coordinate space).
 // left = centre-x of bird; CSS applies translateX(-50%) to centre it.
 // top  = top edge of bird (bird bottom ≈ branch y).
@@ -77,6 +71,26 @@ const BIRD_POSITIONS = [
   { left: 72.0, top: 15.0, flip: false },  // 7 — branch 7 (right)
   { left: 50.0, top:  7.5, flip: false },  // 8 — nest
 ];
+
+/* ── Bird positions (mobile — cropped viewBox "90 0 120 720") ───── */
+// On mobile the SVG uses preserveAspectRatio="xMidYMid slice" with
+// viewBox "90 0 120 720". Visible x range ≈ 90–210 in SVG coords.
+// Positions are % of the narrow tree-panel width.
+const BIRD_POSITIONS_MOBILE = [
+  { left: 50.0, top: 90.0, flip: false },  // 0 — ground (centred on trunk)
+  { left: 75.0, top: 82.5, flip: false },  // 1 — branch 1 right trunk origin
+  { left: 25.0, top: 71.2, flip: true  },  // 2 — branch 2 left trunk origin
+  { left: 75.0, top: 60.0, flip: false },  // 3 — branch 3
+  { left: 25.0, top: 48.8, flip: true  },  // 4 — branch 4
+  { left: 75.0, top: 37.5, flip: false },  // 5 — branch 5
+  { left: 25.0, top: 26.2, flip: true  },  // 6 — branch 6
+  { left: 75.0, top: 15.0, flip: false },  // 7 — branch 7
+  { left: 50.0, top:  7.5, flip: false },  // 8 — nest
+];
+
+function getBirdPos(posIdx) {
+  return window.innerWidth <= 600 ? BIRD_POSITIONS_MOBILE[posIdx] : BIRD_POSITIONS[posIdx];
+}
 
 /* ── State ──────────────────────────────────────────────────────── */
 let currentLevel    = 0;
@@ -101,7 +115,6 @@ const birdSvg           = document.getElementById('bird-svg');
 const challengeCard     = document.getElementById('challenge-card');
 const challengeContent  = document.getElementById('challenge-content');
 const feedbackMsg       = document.getElementById('feedback-msg');
-const levelLabel        = document.getElementById('level-label');
 const progressDots      = document.getElementById('progress-dots');
 const confettiContainer = document.getElementById('confetti-container');
 
@@ -112,10 +125,26 @@ const treeModalClose   = document.getElementById('tree-modal-close');
 const treeZoomBtn      = document.getElementById('tree-zoom-btn');
 
 function openTreeModal() {
-  // Clone current tree SVG (stars included) into modal
+  if (!treeModalSvg) return;
+  treeModalSvg.innerHTML = '';
+  treeModalSvg.style.position = 'relative';
   const treeSvg = document.getElementById('tree-svg');
-  if (treeSvg && treeModalSvg) {
-    treeModalSvg.innerHTML = treeSvg.outerHTML;
+  if (treeSvg) {
+    const clone = treeSvg.cloneNode(true);
+    clone.style.cssText = 'width:100%;height:100%;display:block;';
+    clone.removeAttribute('preserveAspectRatio'); // show full tree in modal
+    clone.setAttribute('viewBox', '0 0 300 720');
+    treeModalSvg.appendChild(clone);
+  }
+  const birdWrap = document.getElementById('bird-wrapper');
+  if (birdWrap) {
+    const birdClone = birdWrap.cloneNode(true);
+    birdClone.id = 'modal-bird';
+    birdClone.style.transition = 'none';
+    birdClone.style.animation = 'none';
+    const svg = birdClone.querySelector('svg');
+    if (svg) { svg.style.animation = 'none'; }
+    treeModalSvg.appendChild(birdClone);
   }
   treeModal.classList.add('open');
 }
@@ -160,14 +189,25 @@ document.querySelectorAll('.nk').forEach(btn => {
 
 function handleNumpadKey(key) {
   if (!activeInputEl) return;
+  const row = activeInputEl.dataset.row !== undefined ? parseInt(activeInputEl.dataset.row) : null;
+  const dig = activeInputEl.dataset.dig !== undefined ? parseInt(activeInputEl.dataset.dig)
+              : activeInputEl.dataset.totaldig !== undefined ? parseInt(activeInputEl.dataset.totaldig) : 0;
+  const isTotal = activeInputEl.dataset.totaldig !== undefined;
+
   if (key === 'backspace') {
-    activeInputEl.value = activeInputEl.value.slice(0, -1);
+    if (activeInputEl.value) {
+      activeInputEl.value = '';
+    } else if (dig > 0) {
+      const prevId = isTotal ? `total-${dig-1}` : `partial-${row}-${dig-1}`;
+      const prev = document.getElementById(prevId);
+      if (prev && !prev.disabled) { prev.value = ''; prev.focus(); setActiveInput(prev); }
+    }
   } else if (key === 'enter') {
     handleCheck();
   } else {
-    // digit — max 5 chars (covers 4-digit answers like "2800" plus total)
-    if (activeInputEl.value.length < 5) {
-      activeInputEl.value += key;
+    if (!activeInputEl.value) {
+      activeInputEl.value = key;
+      advanceFromBox(activeInputEl);
     }
   }
 }
@@ -184,7 +224,7 @@ function setActiveInput(el) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   BIRD IDLE EFFECTS  (resting animation + musical notes + chirps)
+   BIRD IDLE EFFECTS  (resting animation + musical notes)
    ═══════════════════════════════════════════════════════════════════ */
 
 function spawnMusicalNote() {
@@ -206,7 +246,6 @@ function scheduleIdleEffect() {
   const delay = 3200 + Math.random() * 2400;   // 3.2 – 5.6 s
   idleTimer = setTimeout(() => {
     spawnMusicalNote();
-    if (Math.random() > 0.45) playIdleChirp();
     scheduleIdleEffect();   // reschedule
   }, delay);
 }
@@ -253,20 +292,6 @@ function getPartials(multiplicand, multiplier) {
   }).filter(p => p.digit > 0);   // skip digits that are zero
 }
 
-/**
- * Build the HTML for the styled partial-display that replaces a correct input.
- * Significant digits shown in green; trailing zeros (= position count) in orange.
- */
-function buildPartialDisplay(answer, position) {
-  const ansStr = String(answer);
-  if (position === 0) {
-    return `<div class="partial-display"><span class="sig">${ansStr}</span></div>`;
-  }
-  const sigPart = ansStr.slice(0, ansStr.length - position);
-  const tzPart  = ansStr.slice(ansStr.length - position);
-  return `<div class="partial-display"><span class="sig">${sigPart}</span><span class="tz">${tzPart}</span></div>`;
-}
-
 /* ── Shared helpers ─────────────────────────────────────────────── */
 function showFeedback(msg, type) {
   feedbackMsg.textContent = msg;
@@ -305,7 +330,7 @@ function spawnStars(el) {
    BIRD MOVEMENT
    ═══════════════════════════════════════════════════════════════════ */
 function placeBird(posIdx, animate) {
-  const pos = BIRD_POSITIONS[posIdx];
+  const pos = getBirdPos(posIdx);
 
   // Stop idle before any movement
   stopIdleAnimation();
@@ -349,23 +374,31 @@ function renderProgress() {
     dot.textContent = i < currentLevel ? '✓' : String(i + 1);
     progressDots.appendChild(dot);
   }
-  levelLabel.textContent = `Branch ${currentLevel + 1} of ${CHALLENGES.length}`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIGIT BOX ADVANCE HELPER
+   ═══════════════════════════════════════════════════════════════════ */
+function advanceFromBox(inp) {
+  const row = inp.dataset.row !== undefined ? parseInt(inp.dataset.row) : null;
+  const dig = inp.dataset.dig !== undefined ? parseInt(inp.dataset.dig) : parseInt(inp.dataset.totaldig);
+  const isTotal = inp.dataset.totaldig !== undefined;
+  const sigCount = parseInt(inp.dataset.sigcount);
+  if (dig < sigCount - 1) {
+    const nextId = isTotal ? `total-${dig+1}` : `partial-${row}-${dig+1}`;
+    const next = document.getElementById(nextId);
+    if (next && !next.disabled) { next.focus(); setActiveInput(next); }
+  } else {
+    if (!isTotal && row !== null && !partialsCorrect[row]) {
+      setTimeout(() => validatePartialRow(row), 80);
+    } else if (isTotal) {
+      setTimeout(() => checkTotal(), 80);
+    }
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    CHALLENGE RENDERING
-   The ladder looks like this for 554 × 6:
-   ┌──────────────────────────────────────────────────┐
-   │      554  ×  6  =  ?                             │
-   │  ─────────────────────────── Ladder Method       │
-   │  500 × 6 = [3000]     ← student types "3000"     │
-   │   50 × 6 = [ 300]     ← student types "300"      │
-   │    4 × 6 = [  24]     ← student types "24"       │
-   │             ──────────────                       │
-   │    Total  = [      ]                             │
-   └──────────────────────────────────────────────────┘
-   After each correct partial, the input is replaced with a
-   partial-display showing sig digits (green) + trailing zeros (orange).
    ═══════════════════════════════════════════════════════════════════ */
 function renderChallenge() {
   ch              = CHALLENGES[currentLevel];
@@ -375,6 +408,12 @@ function renderChallenge() {
 
   renderProgress();
   showFeedback(ch.intro, 'hint');
+
+  // Compute column width for right-alignment
+  const maxCols = Math.max(
+    ...partials.map(p => String(p.answer).length),
+    String(total).length
+  );
 
   // ── Problem header ──────────────────────────────────────────
   let html = `
@@ -392,6 +431,10 @@ function renderChallenge() {
 
   // ── Ladder rows ─────────────────────────────────────────────
   partials.forEach((p, i) => {
+    const ansStr   = String(p.answer);
+    const sigDigits = ansStr.length - p.position;  // digits student types
+    const numSpacers = maxCols - ansStr.length;
+
     html += `
       <div class="ladder-row" id="row-${i}">
         <div class="row-label">
@@ -400,17 +443,44 @@ function renderChallenge() {
           <span class="lbl-mult">${ch.multiplier}</span>
           <span class="lbl-eq">=</span>
         </div>
-        <input
-          type="number" inputmode="numeric" min="0"
-          class="ladder-input" placeholder="?"
-          autocomplete="off"
-          id="partial-${i}"
-          data-answer="${p.answer}"
-          aria-label="${p.placeValue} times ${ch.multiplier}">
+        <div class="digit-area" id="grid-${i}">
+    `;
+
+    // Left spacers (for column alignment)
+    for (let s = 0; s < numSpacers; s++) {
+      html += `<span class="digit-spacer"></span>`;
+    }
+
+    // Significant digit input boxes
+    for (let d = 0; d < sigDigits; d++) {
+      html += `<input
+        type="text"
+        inputmode="numeric"
+        maxlength="1"
+        class="digit-box"
+        id="partial-${i}-${d}"
+        data-row="${i}"
+        data-dig="${d}"
+        data-sigcount="${sigDigits}"
+        autocomplete="off"
+        aria-label="${p.placeValue} times ${ch.multiplier} digit ${d+1}">`;
+    }
+
+    // Trailing zero boxes (non-interactive)
+    for (let z = 0; z < p.position; z++) {
+      html += `<div class="digit-box digit-zero">0</div>`;
+    }
+
+    html += `
+        </div><!-- /.digit-area -->
         <span class="row-status" id="status-${i}"></span>
       </div>
     `;
   });
+
+  // ── Total row ────────────────────────────────────────────────
+  const totalStr   = String(total);
+  const totalDigits = totalStr.length;
 
   html += `
     </div>
@@ -422,14 +492,26 @@ function renderChallenge() {
         <span class="total-word">Total</span>
         <span class="lbl-eq">=</span>
       </div>
-      <input
-        type="number" inputmode="numeric" min="0"
-        class="ladder-input total-input" placeholder="?"
-        autocomplete="off"
-        id="total-input"
-        data-answer="${total}"
-        disabled
-        aria-label="Total">
+      <div class="digit-area" id="grid-total">
+  `;
+
+  for (let d = 0; d < totalDigits; d++) {
+    html += `<input
+      type="text"
+      inputmode="numeric"
+      maxlength="1"
+      class="digit-box"
+      id="total-${d}"
+      data-totaldig="${d}"
+      data-sigcount="${totalDigits}"
+      data-answer="${totalStr[d]}"
+      disabled
+      autocomplete="off"
+      aria-label="Total digit ${d+1}">`;
+  }
+
+  html += `
+      </div><!-- /.digit-area -->
       <span class="row-status" id="total-status"></span>
     </div>
 
@@ -442,38 +524,96 @@ function renderChallenge() {
 
   // ── Numpad: suppress native keyboard on small screens ───────
   const isMobile = window.innerWidth <= 900;
-  if (isMobile) {
-    document.querySelectorAll('.ladder-input').forEach(inp => {
+
+  // ── Bind events to partial boxes ────────────────────────────
+  partials.forEach((p, i) => {
+    const ansStr   = String(p.answer);
+    const sigDigits = ansStr.length - p.position;
+    for (let d = 0; d < sigDigits; d++) {
+      const inp = document.getElementById(`partial-${i}-${d}`);
+      if (!inp) continue;
+
+      if (isMobile) {
+        inp.setAttribute('inputmode', 'none');
+        inp.readOnly = true;
+      }
+
+      inp.addEventListener('input', () => {
+        // Strip non-digits, keep last char only
+        inp.value = inp.value.replace(/\D/g, '').slice(-1);
+        if (inp.value) advanceFromBox(inp);
+      });
+
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          if (inp.value) {
+            inp.value = '';
+          } else if (d > 0) {
+            const prev = document.getElementById(`partial-${i}-${d-1}`);
+            if (prev && !prev.disabled) { prev.value = ''; prev.focus(); setActiveInput(prev); }
+          }
+        } else if (e.key === 'ArrowLeft' && d > 0) {
+          const prev = document.getElementById(`partial-${i}-${d-1}`);
+          if (prev) { prev.focus(); setActiveInput(prev); }
+        } else if (e.key === 'ArrowRight' && d < sigDigits - 1) {
+          const next = document.getElementById(`partial-${i}-${d+1}`);
+          if (next && !next.disabled) { next.focus(); setActiveInput(next); }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          validatePartialRow(i);
+        }
+      });
+
+      inp.addEventListener('focus', () => setActiveInput(inp));
+      inp.addEventListener('click', () => setActiveInput(inp));
+    }
+  });
+
+  // ── Bind events to total boxes ───────────────────────────────
+  for (let d = 0; d < totalDigits; d++) {
+    const inp = document.getElementById(`total-${d}`);
+    if (!inp) continue;
+
+    if (isMobile) {
       inp.setAttribute('inputmode', 'none');
       inp.readOnly = true;
+    }
+
+    inp.addEventListener('input', () => {
+      inp.value = inp.value.replace(/\D/g, '').slice(-1);
+      if (inp.value) advanceFromBox(inp);
     });
-  }
 
-  // ── Bind events ─────────────────────────────────────────────
-  document.getElementById('check-btn').addEventListener('click', handleCheck);
-
-  // Per-row Enter key: validate that row
-  partials.forEach((p, i) => {
-    const inp = document.getElementById(`partial-${i}`);
     inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); validatePartialRow(i); }
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        if (inp.value) {
+          inp.value = '';
+        } else if (d > 0) {
+          const prev = document.getElementById(`total-${d-1}`);
+          if (prev && !prev.disabled) { prev.value = ''; prev.focus(); setActiveInput(prev); }
+        }
+      } else if (e.key === 'ArrowLeft' && d > 0) {
+        const prev = document.getElementById(`total-${d-1}`);
+        if (prev) { prev.focus(); setActiveInput(prev); }
+      } else if (e.key === 'ArrowRight' && d < totalDigits - 1) {
+        const next = document.getElementById(`total-${d+1}`);
+        if (next && !next.disabled) { next.focus(); setActiveInput(next); }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleCheck();
+      }
     });
-    inp.addEventListener('wheel', e => e.preventDefault(), { passive: false });
+
     inp.addEventListener('focus', () => setActiveInput(inp));
     inp.addEventListener('click', () => setActiveInput(inp));
-  });
+  }
 
-  // Total Enter key
-  const totalInp = document.getElementById('total-input');
-  totalInp.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); handleCheck(); }
-  });
-  totalInp.addEventListener('wheel', e => e.preventDefault(), { passive: false });
-  totalInp.addEventListener('focus', () => setActiveInput(totalInp));
-  totalInp.addEventListener('click', () => setActiveInput(totalInp));
+  document.getElementById('check-btn').addEventListener('click', handleCheck);
 
   // Focus first input (also sets it as active for numpad)
-  const firstInp = document.getElementById('partial-0');
+  const firstInp = document.getElementById('partial-0-0');
   if (firstInp) {
     firstInp.focus();
     setActiveInput(firstInp);
@@ -486,44 +626,60 @@ function renderChallenge() {
 
 /** Validate a single partial row (called on Enter key or via check button). */
 function validatePartialRow(i) {
-  const p      = partials[i];
-  const inp    = document.getElementById(`partial-${i}`);
-  const status = document.getElementById(`status-${i}`);
-  if (!inp || partialsCorrect[i] || inp.value === '') return false;
+  const p = partials[i];
+  if (partialsCorrect[i]) return false;
+  const ansStr   = String(p.answer);
+  const sigDigits = ansStr.length - p.position;
+  const expectedSig = ansStr.slice(0, sigDigits);
 
-  const val = parseInt(inp.value, 10);
-  if (val === p.answer) {
+  let typed = '';
+  for (let d = 0; d < sigDigits; d++) {
+    const box = document.getElementById(`partial-${i}-${d}`);
+    typed += box ? (box.value || '') : '';
+  }
+
+  if (typed.length < sigDigits) { showFeedback('Fill all boxes in this row!', 'error'); return false; }
+
+  if (typed === expectedSig) {
     playChirp();
-    // Replace input with styled partial-display
-    inp.remove();
-    const displayHtml = buildPartialDisplay(p.answer, p.position);
-    // Insert display before the status span
-    status.insertAdjacentHTML('beforebegin', displayHtml);
-
     partialsCorrect[i] = true;
-    status.textContent = '✓';
-    status.style.color = 'var(--correct)';
-
+    const status = document.getElementById(`status-${i}`);
+    for (let d = 0; d < sigDigits; d++) {
+      const box = document.getElementById(`partial-${i}-${d}`);
+      if (box) {
+        box.readOnly = true;
+        box.classList.add('digit-correct');
+        box.classList.remove('digit-wrong', 'nk-active');
+      }
+    }
+    document.querySelectorAll(`#grid-${i} .digit-zero`).forEach(z => z.classList.add('digit-correct'));
+    status.textContent = '✓'; status.style.color = 'var(--correct)';
     checkIfAllPartialsCorrect();
 
-    // Auto-advance: find next available partial input
-    const nextPartialIdx = partialsCorrect.findIndex((correct, idx) => idx > i && !correct);
-    if (nextPartialIdx !== -1) {
-      const nextInp = document.getElementById(`partial-${nextPartialIdx}`);
-      if (nextInp) {
-        nextInp.focus();
-        setActiveInput(nextInp);
-      }
+    // Auto-advance to next uncorrected partial
+    const next = partialsCorrect.findIndex((c, idx) => idx > i && !c);
+    if (next !== -1) {
+      const nb = document.getElementById(`partial-${next}-0`);
+      if (nb) { nb.focus(); setActiveInput(nb); }
     }
     return true;
   } else {
     playWrong();
-    inp.classList.add('wrong');
-    inp.classList.remove('correct');
-    status.textContent = '✗';
-    status.style.color = 'var(--wrong)';
-    shakeEl(inp);
+    const status = document.getElementById(`status-${i}`);
+    status.textContent = '✗'; status.style.color = 'var(--wrong)';
+    const grid = document.getElementById(`grid-${i}`);
+    if (grid) shakeEl(grid);
+    for (let d = 0; d < sigDigits; d++) {
+      const box = document.getElementById(`partial-${i}-${d}`);
+      if (box) {
+        box.classList.add('digit-wrong');
+        box.classList.remove('digit-correct');
+        box.value = '';
+      }
+    }
     showFeedback(`Try again — what is ${p.placeValue} × ${ch.multiplier}?`, 'error');
+    const fb = document.getElementById(`partial-${i}-0`);
+    if (fb) { fb.focus(); setActiveInput(fb); }
     return false;
   }
 }
@@ -535,23 +691,36 @@ function checkPartials() {
 
   partials.forEach((p, i) => {
     if (partialsCorrect[i]) return;   // already locked in as correct
-    const inp    = document.getElementById(`partial-${i}`);
-    const status = document.getElementById(`status-${i}`);
-    if (!inp || inp.value === '') { allCorrect = false; return; }
+    const ansStr   = String(p.answer);
+    const sigDigits = ansStr.length - p.position;
+    const expectedSig = ansStr.slice(0, sigDigits);
+
+    let typed = '';
+    for (let d = 0; d < sigDigits; d++) {
+      const box = document.getElementById(`partial-${i}-${d}`);
+      typed += box ? (box.value || '') : '';
+    }
+    if (!typed) { allCorrect = false; return; }
     anyFilled = true;
 
-    const val = parseInt(inp.value, 10);
-    if (val === p.answer) {
-      // Replace input with styled partial-display
-      inp.remove();
-      const displayHtml = buildPartialDisplay(p.answer, p.position);
-      status.insertAdjacentHTML('beforebegin', displayHtml);
+    if (typed === expectedSig) {
       partialsCorrect[i] = true;
+      const status = document.getElementById(`status-${i}`);
+      for (let d = 0; d < sigDigits; d++) {
+        const box = document.getElementById(`partial-${i}-${d}`);
+        if (box) {
+          box.readOnly = true;
+          box.classList.add('digit-correct');
+          box.classList.remove('digit-wrong', 'nk-active');
+        }
+      }
+      document.querySelectorAll(`#grid-${i} .digit-zero`).forEach(z => z.classList.add('digit-correct'));
       status.textContent = '✓'; status.style.color = 'var(--correct)';
     } else {
-      inp.classList.add('wrong'); inp.classList.remove('correct');
+      const status = document.getElementById(`status-${i}`);
       status.textContent = '✗'; status.style.color = 'var(--wrong)';
-      shakeEl(inp);
+      const grid = document.getElementById(`grid-${i}`);
+      if (grid) shakeEl(grid);
       allCorrect = false;
     }
   });
@@ -572,33 +741,59 @@ function checkIfAllPartialsCorrect() {
   if (!partialsCorrect.every(Boolean)) return;
 
   showFeedback('All rows correct! Now add them all up. ➕', 'partial');
-  const totalInp = document.getElementById('total-input');
-  totalInp.disabled = false;
-  // Re-enable numpad on mobile for total input
-  if (window.innerWidth <= 900) {
-    totalInp.setAttribute('inputmode', 'none');
-    totalInp.readOnly = true;
+
+  const total     = ch.multiplicand * ch.multiplier;
+  const totalStr  = String(total);
+  const totalDigits = totalStr.length;
+
+  // Enable all total boxes
+  for (let d = 0; d < totalDigits; d++) {
+    const box = document.getElementById(`total-${d}`);
+    if (box) {
+      box.disabled = false;
+      if (window.innerWidth <= 900) {
+        box.setAttribute('inputmode', 'none');
+        box.readOnly = true;
+      }
+    }
   }
-  totalInp.focus();
-  setActiveInput(totalInp);
+
+  // Focus first total box
+  const first = document.getElementById('total-0');
+  if (first) { first.focus(); setActiveInput(first); }
+
   document.getElementById('check-btn').textContent = 'Check Total ✓';
 }
 
 function checkTotal() {
-  const totalInp  = document.getElementById('total-input');
+  const total     = ch.multiplicand * ch.multiplier;
+  const totalStr  = String(total);
+  const totalDigits = totalStr.length;
   const totalStat = document.getElementById('total-status');
-  if (totalInp.value === '') { showFeedback('Enter the total first!', 'error'); return; }
 
-  const answer = parseInt(totalInp.dataset.answer, 10);
-  const val    = parseInt(totalInp.value, 10);
+  let typed = '';
+  for (let d = 0; d < totalDigits; d++) {
+    const box = document.getElementById(`total-${d}`);
+    typed += box ? (box.value || '') : '';
+  }
 
-  if (val === answer) {
+  if (typed.length < totalDigits) { showFeedback('Enter the total first!', 'error'); return; }
+
+  if (typed === totalStr) {
     playSuccess();
-    totalInp.classList.add('correct'); totalInp.classList.remove('wrong');
+    for (let d = 0; d < totalDigits; d++) {
+      const box = document.getElementById(`total-${d}`);
+      if (box) {
+        box.readOnly = true;
+        box.classList.add('digit-correct');
+        box.classList.remove('digit-wrong', 'nk-active');
+      }
+    }
     totalStat.textContent = '✓'; totalStat.style.color = 'var(--correct)';
     document.getElementById('check-btn').disabled = true;
     showFeedback('🎉 Brilliant! The bird hops up!', 'success');
-    spawnStars(totalInp);
+    const gridTotal = document.getElementById('grid-total');
+    if (gridTotal) spawnStars(gridTotal);
     // Flash card green
     challengeCard.style.transition = 'box-shadow 0.3s';
     challengeCard.style.boxShadow  = '0 0 0 4px var(--correct), var(--card-shadow)';
@@ -606,17 +801,24 @@ function checkTotal() {
     setTimeout(advanceLevel, 1300);
   } else {
     playWrong();
-    totalInp.classList.add('wrong'); totalInp.classList.remove('correct');
     totalStat.textContent = '✗'; totalStat.style.color = 'var(--wrong)';
     showFeedback('Not quite — check your addition!', 'error');
-    shakeEl(totalInp);
+    const gridTotal = document.getElementById('grid-total');
+    if (gridTotal) shakeEl(gridTotal);
+    for (let d = 0; d < totalDigits; d++) {
+      const box = document.getElementById(`total-${d}`);
+      if (box) {
+        box.classList.add('digit-wrong');
+        box.classList.remove('digit-correct');
+        box.value = '';
+      }
+    }
   }
 }
 
 /** Route the Check button to the right validation step. */
 function handleCheck() {
-  const totalInp = document.getElementById('total-input');
-  if (totalInp && !totalInp.disabled) {
+  if (partialsCorrect.every(Boolean)) {
     checkTotal();
   } else {
     checkPartials();
@@ -650,6 +852,14 @@ function startGame() {
     const el = document.getElementById('star-' + i);
     if (el) el.setAttribute('opacity', '0');
   }
+
+  // Mobile SVG crop: viewBox focuses on trunk/branch origins
+  if (window.innerWidth <= 600) {
+    const treeSvg = document.getElementById('tree-svg');
+    treeSvg.setAttribute('viewBox', '90 0 120 720');
+    treeSvg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  }
+
   placeBird(0, false);
   renderProgress();
   renderChallenge();
