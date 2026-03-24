@@ -233,10 +233,8 @@ function handleNumpadKey(key) {
   } else if (key === 'enter') {
     handleCheck();
   } else {
-    if (!activeInputEl.value) {
-      activeInputEl.value = key;
-      advanceFromBox(activeInputEl);
-    }
+    activeInputEl.value = key;        // overwrite whatever was there
+    advanceFromBox(activeInputEl);
   }
 }
 
@@ -592,6 +590,13 @@ function renderChallenge() {
             const prev = document.getElementById(`partial-${i}-${d-1}`);
             if (prev && !prev.disabled) { prev.value = ''; prev.focus(); setActiveInput(prev); }
           }
+        } else if (e.key === 'Delete') {
+          e.preventDefault();
+          inp.value = '';                     // clear in place, don't move
+        } else if (/^[0-9]$/.test(e.key)) {
+          e.preventDefault();
+          inp.value = e.key;                  // overwrite — no clear needed
+          advanceFromBox(inp);
         } else if (e.key === 'ArrowLeft' && d > 0) {
           const prev = document.getElementById(`partial-${i}-${d-1}`);
           if (prev) { prev.focus(); setActiveInput(prev); }
@@ -634,6 +639,13 @@ function renderChallenge() {
           const next = document.getElementById(`total-${d + 1}`);
           if (next && !next.disabled) { next.focus(); setActiveInput(next); }
         }
+      } else if (e.key === 'Delete') {
+        e.preventDefault();
+        inp.value = '';                       // clear in place, don't move
+      } else if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        inp.value = e.key;                    // overwrite — no clear needed
+        advanceFromBox(inp);
       } else if (e.key === 'ArrowLeft' && d > 0) {
         const prev = document.getElementById(`total-${d-1}`);
         if (prev) { prev.focus(); setActiveInput(prev); }
