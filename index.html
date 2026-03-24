@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Bird Climbs the Tree – Ladder Multiplication</title>
+  <meta name="description" content="Help a colourful bird climb to its nest by solving multiplication challenges using the ladder method.">
+  <meta property="og:title" content="Bird Climbs the Tree">
+  <meta property="og:description" content="Hop branch to branch solving ladder-method multiplication. For ages 8–10.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#4ab94a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ══════════ START SCREEN ══════════ -->
+  <div id="start-screen" class="screen active">
+    <div class="start-content">
+      <div class="start-bird-wrap">
+        <img src="bird.jpg" alt="A colourful painted bird" class="start-bird">
+      </div>
+      <h1 class="game-title">
+        <span class="title-line1">Bird Climbs</span>
+        <span class="title-line2">the Tree</span>
+      </h1>
+      <p class="start-sub">Help the bird hop branch by branch up to its nest!</p>
+      <div class="start-method-hint">
+        <span class="hint-badge">How to play</span>
+        <p>Use the <strong>ladder method</strong> to solve each multiplication.
+        Each correct answer sends the bird higher. 🐦→🪺</p>
+      </div>
+      <button id="start-btn" class="btn btn-primary">Let's Fly! 🚀</button>
+    </div>
+  </div>
+
+  <!-- ══════════ GAME SCREEN ══════════ -->
+  <div id="game-screen" class="screen">
+    <div class="game-layout">
+
+      <!-- Left: Tree panel -->
+      <div class="tree-panel" aria-hidden="true">
+        <div class="tree-wrap" id="tree-wrap">
+
+          <svg id="tree-svg" viewBox="0 0 300 720" xmlns="http://www.w3.org/2000/svg">
+
+            <!-- Top foliage -->
+            <ellipse cx="150" cy="68"  rx="78"  ry="62"  fill="#2d8a2d"/>
+            <ellipse cx="112" cy="88"  rx="58"  ry="48"  fill="#3a9a3a"/>
+            <ellipse cx="188" cy="88"  rx="58"  ry="48"  fill="#3a9a3a"/>
+            <ellipse cx="150" cy="48"  rx="52"  ry="42"  fill="#4ab94a"/>
+            <ellipse cx="150" cy="38"  rx="32"  ry="26"  fill="#5dcf5d"/>
+
+            <!-- Nest -->
+            <ellipse cx="150" cy="122" rx="30"  ry="15"  fill="#7a5c10"/>
+            <ellipse cx="150" cy="119" rx="25"  ry="12"  fill="#a07820"/>
+            <path d="M128 119 Q139 113 150 119 Q161 113 172 119" stroke="#6b4f10" stroke-width="1.8" fill="none"/>
+            <path d="M131 122 Q141 116 150 122 Q159 116 169 122" stroke="#6b4f10" stroke-width="1.5" fill="none"/>
+            <!-- Eggs -->
+            <ellipse cx="142" cy="115" rx="7"   ry="5"   fill="#90ee90"/>
+            <ellipse cx="158" cy="115" rx="7"   ry="5"   fill="#ffd700"/>
+            <ellipse cx="150" cy="112" rx="7"   ry="5"   fill="#ffb6c1"/>
+
+            <!-- Trunk -->
+            <rect    x="133"  y="130" width="34"  height="592" fill="#8b4513" rx="4"/>
+            <rect    x="136"  y="130" width="9"   height="592" fill="#a0522d" rx="3" opacity="0.45"/>
+
+            <!-- Branch 1 — right (y≈640) -->
+            <line x1="167" y1="640" x2="248" y2="627" stroke="#8b4513" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="254" cy="623" r="17"  fill="#3a9a3a"/>
+            <circle cx="268" cy="616" r="13"  fill="#4ab94a"/>
+
+            <!-- Branch 2 — left (y≈560) -->
+            <line x1="133" y1="560" x2="52"  y2="547" stroke="#8b4513" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="46"  cy="543" r="17"  fill="#3a9a3a"/>
+            <circle cx="32"  cy="536" r="13"  fill="#4ab94a"/>
+
+            <!-- Branch 3 — right (y≈480) -->
+            <line x1="167" y1="480" x2="248" y2="467" stroke="#8b4513" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="254" cy="463" r="17"  fill="#3a9a3a"/>
+            <circle cx="268" cy="456" r="13"  fill="#4ab94a"/>
+
+            <!-- Branch 4 — left (y≈400) -->
+            <line x1="133" y1="400" x2="52"  y2="387" stroke="#8b4513" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="46"  cy="383" r="17"  fill="#3a9a3a"/>
+            <circle cx="32"  cy="376" r="13"  fill="#4ab94a"/>
+
+            <!-- Branch 5 — right (y≈320) -->
+            <line x1="167" y1="320" x2="248" y2="307" stroke="#8b4513" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="254" cy="303" r="17"  fill="#3a9a3a"/>
+            <circle cx="268" cy="296" r="13"  fill="#4ab94a"/>
+
+            <!-- Branch 6 — left (y≈240) -->
+            <line x1="133" y1="240" x2="52"  y2="227" stroke="#8b4513" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="46"  cy="223" r="17"  fill="#3a9a3a"/>
+            <circle cx="32"  cy="216" r="13"  fill="#4ab94a"/>
+
+            <!-- Branch 7 — right (y≈160) -->
+            <line x1="167" y1="160" x2="248" y2="147" stroke="#8b4513" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="254" cy="143" r="17"  fill="#3a9a3a"/>
+            <circle cx="268" cy="136" r="13"  fill="#4ab94a"/>
+
+            <!-- Ground / grass -->
+            <ellipse cx="150" cy="716" rx="90"  ry="20"  fill="#4a7c30" opacity="0.55"/>
+            <rect    x="60"   y="700" width="180" height="22" fill="#5a8a3a" opacity="0.35" rx="4"/>
+
+            <!-- Branch-done stars (hidden by default, revealed via JS) -->
+            <text id="star-1" class="branch-star" x="248" y="655" opacity="0">⭐</text>
+            <text id="star-2" class="branch-star" x="44"  y="575" opacity="0">⭐</text>
+            <text id="star-3" class="branch-star" x="248" y="495" opacity="0">⭐</text>
+            <text id="star-4" class="branch-star" x="44"  y="415" opacity="0">⭐</text>
+            <text id="star-5" class="branch-star" x="248" y="335" opacity="0">⭐</text>
+            <text id="star-6" class="branch-star" x="44"  y="255" opacity="0">⭐</text>
+            <text id="star-7" class="branch-star" x="248" y="175" opacity="0">⭐</text>
+
+          </svg>
+
+          <!-- Bird (JS moves this) -->
+          <div id="bird-wrapper" class="bird-wrapper">
+            <img id="bird-img" src="bird.jpg" alt="Colourful bird" class="bird-img">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: Challenge panel -->
+      <div class="challenge-panel">
+        <div class="challenge-card" id="challenge-card">
+
+          <div class="card-top">
+            <div id="progress-dots" class="progress-dots" aria-label="Progress"></div>
+            <div id="level-label" class="level-label">Branch 1 of 7</div>
+          </div>
+
+          <div id="challenge-content" class="challenge-content">
+            <!-- Filled by game.js -->
+          </div>
+
+          <div id="feedback-msg" class="feedback-msg" aria-live="polite"></div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════ WIN SCREEN ══════════ -->
+  <div id="win-screen" class="screen">
+    <div id="confetti-container" class="confetti-container" aria-hidden="true"></div>
+    <div class="win-content">
+      <div class="win-nest-scene">
+        <img src="bird.jpg" alt="Happy bird in its nest" class="win-bird">
+        <div class="win-nest-emoji">🪺</div>
+      </div>
+      <h2 class="win-title">Amazing! 🥳</h2>
+      <p class="win-sub">The bird made it to the nest!</p>
+      <p class="win-detail">You solved all 7 challenges using the <strong>ladder method</strong>. You're a multiplication star! ⭐</p>
+      <button id="play-again-btn" class="btn btn-primary">Play Again 🎉</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
