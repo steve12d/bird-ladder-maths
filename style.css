@@ -132,7 +132,7 @@ html, body {
 /* ── Bird SVG ───────────────────────────────────────────────────── */
 .bird-wrapper {
   position: absolute;
-  width: 24%;          /* ~24% of tree-wrap width ≈ 72 SVG units */
+  width: 32%;          /* ~32% of tree-wrap width */
   transform: translateX(-50%);
   transition:
     left  0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -325,6 +325,7 @@ html, body {
   flex-shrink: 0;
 }
 .digit-box {
+  position: relative;
   width: 2.1rem;
   height: 2.1rem;
   flex-shrink: 0;
@@ -365,6 +366,31 @@ html, body {
   border-color: var(--wrong);
   background: #fdedec;
   color: var(--wrong);
+}
+
+/* Total-row "start here" indicator — pulses on the ones (rightmost) box */
+.digit-box.total-start {
+  border-color: var(--orange) !important;
+  animation: pulse-start 0.9s ease-in-out 3;
+}
+.digit-box.total-start::before {
+  content: '▼';
+  position: absolute;
+  top: -1.3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  color: var(--orange);
+  pointer-events: none;
+  animation: pulse-start-arrow 0.9s ease-in-out 3;
+}
+@keyframes pulse-start {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255,140,0,0.2); }
+  50%       { box-shadow: 0 0 0 6px rgba(255,140,0,0.45); }
+}
+@keyframes pulse-start-arrow {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
 }
 
 /* Row status icon */
@@ -661,7 +687,7 @@ html, body {
 
   .tree-zoom-btn { display: block; }
 
-  .bird-wrapper { width: 40%; }
+  .bird-wrapper { width: 52%; }
 
   /* Challenge panel: remaining width, full height */
   .challenge-panel {

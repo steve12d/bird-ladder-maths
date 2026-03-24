@@ -197,9 +197,15 @@ function handleNumpadKey(key) {
   if (key === 'backspace') {
     if (activeInputEl.value) {
       activeInputEl.value = '';
+    } else if (isTotal) {
+      // RTL: numpad backspace retreats rightward (toward ones)
+      const sigCount = parseInt(activeInputEl.dataset.sigcount);
+      if (dig < sigCount - 1) {
+        const next = document.getElementById(`total-${dig + 1}`);
+        if (next && !next.disabled) { next.focus(); setActiveInput(next); }
+      }
     } else if (dig > 0) {
-      const prevId = isTotal ? `total-${dig-1}` : `partial-${row}-${dig-1}`;
-      const prev = document.getElementById(prevId);
+      const prev = document.getElementById(`partial-${row}-${dig - 1}`);
       if (prev && !prev.disabled) { prev.value = ''; prev.focus(); setActiveInput(prev); }
     }
   } else if (key === 'enter') {
@@ -384,15 +390,25 @@ function advanceFromBox(inp) {
   const dig = inp.dataset.dig !== undefined ? parseInt(inp.dataset.dig) : parseInt(inp.dataset.totaldig);
   const isTotal = inp.dataset.totaldig !== undefined;
   const sigCount = parseInt(inp.dataset.sigcount);
-  if (dig < sigCount - 1) {
-    const nextId = isTotal ? `total-${dig+1}` : `partial-${row}-${dig+1}`;
-    const next = document.getElementById(nextId);
-    if (next && !next.disabled) { next.focus(); setActiveInput(next); }
-  } else {
-    if (!isTotal && row !== null && !partialsCorrect[row]) {
-      setTimeout(() => validatePartialRow(row), 80);
-    } else if (isTotal) {
+
+  if (isTotal) {
+    // Total row is filled RIGHT→LEFT (ones first).
+    // After filling dig=N, move to dig=N-1 (leftward).
+    inp.classList.remove('total-start');   // clear start indicator once used
+    if (dig > 0) {
+      const prev = document.getElementById(`total-${dig - 1}`);
+      if (prev && !prev.disabled) { prev.focus(); setActiveInput(prev); }
+    } else {
+      // Reached the leftmost box — auto-validate
       setTimeout(() => checkTotal(), 80);
+    }
+  } else {
+    // Partial rows: left-to-right
+    if (dig < sigCount - 1) {
+      const next = document.getElementById(`partial-${row}-${dig + 1}`);
+      if (next && !next.disabled) { next.focus(); setActiveInput(next); }
+    } else if (row !== null && !partialsCorrect[row]) {
+      setTimeout(() => validatePartialRow(row), 80);
     }
   }
 }
@@ -590,9 +606,10 @@ function renderChallenge() {
         e.preventDefault();
         if (inp.value) {
           inp.value = '';
-        } else if (d > 0) {
-          const prev = document.getElementById(`total-${d-1}`);
-          if (prev && !prev.disabled) { prev.value = ''; prev.focus(); setActiveInput(prev); }
+        } else if (d < totalDigits - 1) {
+          // RTL: backspace retreats rightward (toward ones column)
+          const next = document.getElementById(`total-${d + 1}`);
+          if (next && !next.disabled) { next.focus(); setActiveInput(next); }
         }
       } else if (e.key === 'ArrowLeft' && d > 0) {
         const prev = document.getElementById(`total-${d-1}`);
@@ -740,10 +757,10 @@ function checkPartials() {
 function checkIfAllPartialsCorrect() {
   if (!partialsCorrect.every(Boolean)) return;
 
-  showFeedback('All rows correct! Now add them all up. ➕', 'partial');
+  showFeedback('➕ Add them up! Start from the ones column →', 'partial');
 
-  const total     = ch.multiplicand * ch.multiplier;
-  const totalStr  = String(total);
+  const total       = ch.multiplicand * ch.multiplier;
+  const totalStr    = String(total);
   const totalDigits = totalStr.length;
 
   // Enable all total boxes
@@ -758,9 +775,13 @@ function checkIfAllPartialsCorrect() {
     }
   }
 
-  // Focus first total box
-  const first = document.getElementById('total-0');
-  if (first) { first.focus(); setActiveInput(first); }
+  // Focus RIGHTMOST (ones) box — RTL entry, pulse to draw attention
+  const last = document.getElementById(`total-${totalDigits - 1}`);
+  if (last) {
+    last.classList.add('total-start');
+    last.focus();
+    setActiveInput(last);
+  }
 
   document.getElementById('check-btn').textContent = 'Check Total ✓';
 }
