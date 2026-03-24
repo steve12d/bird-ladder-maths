@@ -316,7 +316,7 @@ html, body {
 .digit-area {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 3px;
 }
 .digit-spacer {
   display: inline-block;
@@ -342,9 +342,7 @@ html, body {
   padding: 0;
   caret-color: transparent;
   transition: border-color 0.15s, background 0.15s;
-  margin-right: 3px;
 }
-.digit-box:last-child { margin-right: 0; }
 .digit-box:focus, .digit-box.nk-active {
   border-color: var(--orange);
   background: #fff8f0;
@@ -741,7 +739,8 @@ html, body {
   .lbl-place, .lbl-mult { font-size: 1rem; }
 
   /* mobile: smaller digit boxes */
-  .digit-box, .digit-spacer { width: 1.75rem; height: 1.75rem; margin-right: 2px; }
+  .digit-area { gap: 2px; }
+  .digit-box, .digit-spacer { width: 1.75rem; height: 1.75rem; }
   .digit-box { font-size: 1rem; border-radius: 4px; }
 }
 
