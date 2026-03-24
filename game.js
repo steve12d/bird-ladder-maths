@@ -1,5 +1,52 @@
 'use strict';
 
+/* ══════════════════════════════════════════════════════════════════
+   AUDIO  (Web Audio API — no external files)
+   ══════════════════════════════════════════════════════════════════ */
+let _audioCtx = null;
+function audioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+
+function tone(freq, dur, type = 'sine', vol = 0.28, delayMs = 0) {
+  try {
+    const ctx  = audioCtx();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type;
+    const t = ctx.currentTime + delayMs / 1000;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.start(t); osc.stop(t + dur + 0.01);
+  } catch (_) {}
+}
+
+/** Two-note chirp — correct partial answer */
+function playChirp() {
+  tone(740, 0.09, 'sine', 0.22);
+  tone(1050, 0.09, 'sine', 0.18, 90);
+}
+
+/** Ascending 4-note fanfare — correct total */
+function playSuccess() {
+  [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, 'sine', 0.22, i * 85));
+}
+
+/** Short descending blip — wrong answer */
+function playWrong() {
+  tone(320, 0.18, 'sawtooth', 0.12);
+  tone(240, 0.14, 'sawtooth', 0.09, 90);
+}
+
+/** Quiet warble — idle chirp */
+function playIdleChirp() {
+  tone(660, 0.07, 'sine', 0.10);
+  tone(880, 0.06, 'sine', 0.08, 90);
+}
+
 /* ── Challenge data ─────────────────────────────────────────────── */
 // Progressively harder for ages 8–10.
 // Ladder method: each digit of the multiplicand × the multiplier,
@@ -39,8 +86,11 @@ let partials        = [];     // current partial row data
 let partialsCorrect = [];     // boolean array tracking correct partial rows
 
 /* ── Numpad state ───────────────────────────────────────────────── */
-let activeInputEl   = null;
+let activeInputEl      = null;
 let numpadTouchHandled = false;  // prevent ghost click after touchend
+
+/* ── Idle effects state ─────────────────────────────────────────── */
+let idleTimer = null;
 
 /* ── DOM refs ───────────────────────────────────────────────────── */
 const startScreen       = document.getElementById('start-screen');
@@ -54,6 +104,32 @@ const feedbackMsg       = document.getElementById('feedback-msg');
 const levelLabel        = document.getElementById('level-label');
 const progressDots      = document.getElementById('progress-dots');
 const confettiContainer = document.getElementById('confetti-container');
+
+/* ── Tree zoom modal ─────────────────────────────────────────────── */
+const treeModal        = document.getElementById('tree-modal');
+const treeModalSvg     = document.getElementById('tree-modal-svg');
+const treeModalClose   = document.getElementById('tree-modal-close');
+const treeZoomBtn      = document.getElementById('tree-zoom-btn');
+
+function openTreeModal() {
+  // Clone current tree SVG (stars included) into modal
+  const treeSvg = document.getElementById('tree-svg');
+  if (treeSvg && treeModalSvg) {
+    treeModalSvg.innerHTML = treeSvg.outerHTML;
+  }
+  treeModal.classList.add('open');
+}
+
+function closeTreeModal() {
+  treeModal.classList.remove('open');
+}
+
+if (treeZoomBtn) {
+  treeZoomBtn.addEventListener('click', openTreeModal);
+  treeZoomBtn.addEventListener('touchend', e => { e.preventDefault(); openTreeModal(); });
+}
+if (treeModalClose) treeModalClose.addEventListener('click', closeTreeModal);
+if (treeModal)      treeModal.addEventListener('click', e => { if (e.target === treeModal) closeTreeModal(); });
 
 /* ── Boot ───────────────────────────────────────────────────────── */
 document.getElementById('start-btn').addEventListener('click', startGame);
@@ -105,6 +181,48 @@ function setActiveInput(el) {
   if (el) {
     el.classList.add('nk-active');
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BIRD IDLE EFFECTS  (resting animation + musical notes + chirps)
+   ═══════════════════════════════════════════════════════════════════ */
+
+function spawnMusicalNote() {
+  const rect = birdWrapper.getBoundingClientRect();
+  if (!rect.width) return;
+  const note = document.createElement('span');
+  note.className   = 'musical-note';
+  note.textContent = Math.random() > 0.5 ? '♪' : '♫';
+  // Scatter horizontally around the bird's head area
+  note.style.left  = (rect.left + rect.width  * (0.2 + Math.random() * 0.6)) + 'px';
+  note.style.top   = (rect.top  + rect.height * (0.1 + Math.random() * 0.35)) + 'px';
+  note.style.animationDelay = (Math.random() * 0.2) + 's';
+  document.body.appendChild(note);
+  setTimeout(() => note.remove(), 1800);
+}
+
+function scheduleIdleEffect() {
+  stopIdleEffects();
+  const delay = 3200 + Math.random() * 2400;   // 3.2 – 5.6 s
+  idleTimer = setTimeout(() => {
+    spawnMusicalNote();
+    if (Math.random() > 0.45) playIdleChirp();
+    scheduleIdleEffect();   // reschedule
+  }, delay);
+}
+
+function stopIdleEffects() {
+  if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+}
+
+function startIdleAnimation() {
+  birdSvg.classList.add('idle');
+  scheduleIdleEffect();
+}
+
+function stopIdleAnimation() {
+  birdSvg.classList.remove('idle');
+  stopIdleEffects();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -188,13 +306,23 @@ function spawnStars(el) {
    ═══════════════════════════════════════════════════════════════════ */
 function placeBird(posIdx, animate) {
   const pos = BIRD_POSITIONS[posIdx];
+
+  // Stop idle before any movement
+  stopIdleAnimation();
+
   if (animate) {
     birdWrapper.addEventListener('transitionend', () => {
       birdSvg.classList.add('landing');
-      birdSvg.addEventListener('animationend',
-        () => birdSvg.classList.remove('landing'), { once: true });
+      birdSvg.addEventListener('animationend', () => {
+        birdSvg.classList.remove('landing');
+        startIdleAnimation();    // resume idle once landed
+      }, { once: true });
     }, { once: true });
+  } else {
+    // Immediate placement — start idle shortly after
+    setTimeout(startIdleAnimation, 400);
   }
+
   birdWrapper.style.left = pos.left + '%';
   birdWrapper.style.top  = pos.top  + '%';
   birdSvg.classList.toggle('flip', pos.flip);
@@ -365,8 +493,8 @@ function validatePartialRow(i) {
 
   const val = parseInt(inp.value, 10);
   if (val === p.answer) {
+    playChirp();
     // Replace input with styled partial-display
-    const row = document.getElementById(`row-${i}`);
     inp.remove();
     const displayHtml = buildPartialDisplay(p.answer, p.position);
     // Insert display before the status span
@@ -389,6 +517,7 @@ function validatePartialRow(i) {
     }
     return true;
   } else {
+    playWrong();
     inp.classList.add('wrong');
     inp.classList.remove('correct');
     status.textContent = '✗';
@@ -464,6 +593,7 @@ function checkTotal() {
   const val    = parseInt(totalInp.value, 10);
 
   if (val === answer) {
+    playSuccess();
     totalInp.classList.add('correct'); totalInp.classList.remove('wrong');
     totalStat.textContent = '✓'; totalStat.style.color = 'var(--correct)';
     document.getElementById('check-btn').disabled = true;
@@ -475,6 +605,7 @@ function checkTotal() {
     setTimeout(() => { challengeCard.style.boxShadow = ''; }, 700);
     setTimeout(advanceLevel, 1300);
   } else {
+    playWrong();
     totalInp.classList.add('wrong'); totalInp.classList.remove('correct');
     totalStat.textContent = '✗'; totalStat.style.color = 'var(--wrong)';
     showFeedback('Not quite — check your addition!', 'error');

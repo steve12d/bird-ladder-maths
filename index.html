@@ -157,6 +157,8 @@
           </svg>
         </div>
 
+        <!-- Zoom overlay button (mobile only, z-index above SVG) -->
+        <button class="tree-zoom-btn" id="tree-zoom-btn" aria-label="Zoom tree" type="button"></button>
       </div>
     </div>
 
@@ -164,16 +166,19 @@
     <div class="challenge-panel">
       <div class="challenge-card" id="challenge-card">
 
-        <div class="card-top">
-          <div id="progress-dots" class="progress-dots" aria-label="Progress"></div>
-          <div id="level-label" class="level-label">Branch 1 of 7</div>
-        </div>
+        <!-- Scrollable section (everything above the numpad) -->
+        <div class="challenge-scrollable" id="challenge-scrollable">
+          <div class="card-top">
+            <div id="progress-dots" class="progress-dots" aria-label="Progress"></div>
+            <div id="level-label" class="level-label">Branch 1 of 7</div>
+          </div>
 
-        <div id="challenge-content" class="challenge-content">
-          <!-- Filled by game.js -->
-        </div>
+          <div id="challenge-content" class="challenge-content">
+            <!-- Filled by game.js -->
+          </div>
 
-        <div id="feedback-msg" class="feedback-msg" aria-live="polite"></div>
+          <div id="feedback-msg" class="feedback-msg" aria-live="polite"></div>
+        </div><!-- /.challenge-scrollable -->
 
         <!-- Custom numpad (shown on mobile/tablet ≤ 900px) -->
         <div id="numpad" class="numpad" aria-label="Number pad">
@@ -237,6 +242,14 @@
     <p class="win-sub">The bird reached the nest!</p>
     <p class="win-detail">You solved all 7 challenges using the <strong>ladder method</strong>. You're a multiplication star! ⭐</p>
     <button id="play-again-btn" class="btn btn-primary">Play Again 🎉</button>
+  </div>
+</div>
+
+<!-- ══════════ TREE ZOOM MODAL ══════════ -->
+<div id="tree-modal" class="tree-modal" role="dialog" aria-modal="true" aria-label="Tree close-up">
+  <div class="tree-modal-inner">
+    <button class="tree-modal-close" id="tree-modal-close" aria-label="Close zoom">✕</button>
+    <div id="tree-modal-svg" class="tree-modal-svg"></div>
   </div>
 </div>
 
